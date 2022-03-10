@@ -11,7 +11,8 @@ class SyntheticData(data.Dataset):
                  censor_rate,
                  z_law='linear',
                  h_inv_true='identity',
-                 eps_dist='gaussian'):
+                 eps_dist='gaussian',
+                 **kwargs):
         self.sample_size = sample_size
         self.d = d
         self.censor_rate = censor_rate
@@ -22,6 +23,9 @@ class SyntheticData(data.Dataset):
             eps = torch.distributions.Normal(0., 1.).sample(m_z.shape)
         elif eps_dist == 'cox':
             eps = torch.log(- torch.log(1 - torch.rand(m_z.shape)))
+        elif eps_dist == 'pareto':
+            eta = kwargs.pop('eta', 1.)
+            eps = torch.log((1 / torch.pow(1 - torch.rand(m_z.shape), eta) - 1) / eta)
         else:
             raise NotImplementedError
         self.t = -m_z + eps

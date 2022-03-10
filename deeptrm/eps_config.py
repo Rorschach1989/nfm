@@ -29,3 +29,19 @@ class CoxEps(EpsDistribution):
 
     def cumulative_hazard(self, x):
         return torch.exp(x)
+
+
+class ParetoEps(EpsDistribution):
+    """The configuration by Doksum 1987"""
+
+    def __init__(self, eta=1.):  # By default the proportional odds model
+        self.eta = eta
+
+    def hazard(self, x):
+        return torch.exp(x) / (1 + self.eta * torch.exp(x))
+
+    def log_hazard(self, x):
+        return x - torch.log(1 + self.eta * torch.exp(x))
+
+    def cumulative_hazard(self, x):
+        return torch.log(1 + self.eta * torch.exp(x))
