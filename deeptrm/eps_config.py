@@ -32,7 +32,9 @@ class CoxEps(EpsDistribution):
 
 
 class ParetoEps(EpsDistribution):
-    """The configuration by Doksum 1987"""
+    """The configuration by Doksum 1987, see also example 4.7.1 in Bickel, Klassen, Ritov and Wellner
+    P(\epsilon > t) = (1 + \eta e^t)^{-1/\eta}
+    """
 
     def __init__(self, eta=1.):  # By default the proportional odds model
         self.eta = eta

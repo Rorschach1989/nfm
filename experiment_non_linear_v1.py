@@ -14,7 +14,7 @@ censor_rate = 0.1
 
 data = SyntheticData(sample_size, d, censor_rate, z_law='nonlinear_I', eps_dist='pareto')
 m = nn.Sequential(
-    nn.Linear(in_features=5, out_features=128, bias=False),
+    nn.Linear(in_features=5, out_features=128, bias=False),  # TODO: Including bias may result in weird behavior
     nn.ReLU(),
     nn.Linear(in_features=128, out_features=1, bias=False)
 )
