@@ -12,6 +12,7 @@ class SyntheticData(data.Dataset):
                  z_law='linear',
                  h_inv_true='identity',
                  eps_dist='gaussian',
+                 stochastic=True,
                  **kwargs):
         self.sample_size = sample_size
         self.d = d
@@ -31,6 +32,8 @@ class SyntheticData(data.Dataset):
         self.t = -m_z + eps
         self.c = -m_z + torch.rand(m_z.shape) - censor_rate  # Approx
         self.y = torch.minimum(self.t, self.c)
+        if stochastic:
+            self.y = self.y.clone().detach().requires_grad_(True)
         self.delta = (self.t <= self.c).type(torch.int)
         self.effective_sample_size = self.delta.sum()
 
@@ -54,4 +57,7 @@ class SyntheticData(data.Dataset):
 
     def __getitem__(self, item):
         return self.z[item], self.y[item], self.delta[item]
+
+    def __len__(self):
+        return self.z.shape[0]
 

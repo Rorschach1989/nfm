@@ -1,4 +1,6 @@
 import torch
+import torch.nn as nn
+from .monotone import MonotoneMLP
 from .base import EpsDistribution
 
 
@@ -47,3 +49,19 @@ class ParetoEps(EpsDistribution):
 
     def cumulative_hazard(self, x):
         return torch.log(1 + self.eta * torch.exp(x))
+
+
+class NonparametricEps(EpsDistribution, nn.Module):  # This turns out to fail
+    """Almost nonparametric version of a distribution with its cumulative hazard function approximated using
+    a monotone neural net, the same idea in the paper https://arxiv.org/abs/1905.09690,
+    However, it seems that brute force parameterization like this results in unbounded likelihood"""
+
+    def __init__(self, num_hidden_units):
+        nn.Module.__init__(self)
+        self.ch = MonotoneMLP(num_hidden_units=num_hidden_units)
+
+    def cumulative_hazard(self, x):
+        return self.ch(x)
+
+    def hazard(self, x):
+        return self.ch.get_derivative(x)

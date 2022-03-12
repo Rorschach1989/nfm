@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from .monotone import MonotoneMLP
 
 
 class EpsDistribution(object):
@@ -21,12 +22,12 @@ class EpsDistribution(object):
         return torch.log(self.hazard(x))
 
 
-class TransNLL(nn.Module):
+class NPMLENLL(nn.Module):
     """The negative log-likelihood of some transformation models,
     this module takes FULL-BATCH data, stochastic training is NOT supported"""
 
     def __init__(self, eps_conf: EpsDistribution, num_jumps):
-        super(TransNLL, self).__init__()
+        super(NPMLENLL, self).__init__()
         self.eps_conf = eps_conf
         # **Notes**: ideally, num_jumps shall not be known in advance, somewhat methodological issue
         # regarding failure of stochastic training of NPMLE
@@ -34,7 +35,8 @@ class TransNLL(nn.Module):
             torch.log(1e-3 * torch.ones([num_jumps], dtype=torch.float)), requires_grad=True)
 
     def forward(self, m_z, y, delta):
-        """Compute the negative log-likelihood given observed data
+        """Compute the negative log-likelihood given observed data, under log transform
+        \log H(T) = - \beta^T Z + \epsilon
 
         Args:
             m_z(torch.Tensor): a tensor of shape [sample_size, 1]
@@ -55,3 +57,29 @@ class TransNLL(nn.Module):
                          - self.log_jump_sizes.sum() + log_h[uncensored].sum()
         return (surv_part + intensity_part) / sample_size
 
+
+TransNLL = NPMLENLL  # Default transformation model NLL
+
+
+class MonotoneNLL(nn.Module):
+    """Transformation model NLL using monotone approximation of transformation function
+    To save from unnecessary complexity, here we do NOT use log-transformed h, i.e,
+    H(T) = -\beta^T Z + \epsilon
+    """
+
+    def __init__(self, eps_conf: EpsDistribution, num_hidden_units):
+        super(MonotoneNLL, self).__init__()
+        self.eps_conf = eps_conf
+        self.h = MonotoneMLP(num_hidden_units=num_hidden_units)
+
+    def forward(self, m_z, y, delta):
+        """c.f. NPMLENLL, the calculation is way more direct"""
+        uncensored = torch.where(delta)[0]
+        batch_size = y.shape[0]
+        h_y = self.h(y)
+        h_derive_y = self.h.get_derivative(y)
+        lambda_arg = m_z + h_y
+        surv_part = self.eps_conf.cumulative_hazard(lambda_arg).sum()
+        intensity_part = - torch.log(h_derive_y[uncensored]).sum() \
+                         - self.eps_conf.log_hazard(lambda_arg[uncensored]).sum()
+        return (surv_part + intensity_part) / batch_size
