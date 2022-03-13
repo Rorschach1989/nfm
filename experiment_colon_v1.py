@@ -7,7 +7,7 @@ from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps
 from deeptrm.metric import c_index
 
 torch.manual_seed(77)
-data_full = Colon.from_csv('./colon.csv')
+data_full = Colon.from_csv('./data/colon.csv')
 fold_c_indices = []
 
 for _ in tqdm(range(10)):
