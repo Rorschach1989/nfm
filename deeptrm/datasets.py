@@ -1,0 +1,90 @@
+import torch
+import pandas as pd
+from torch.utils.data import Dataset
+
+
+class Colon(Dataset):
+    """The COLON dataset, extracted via the `survival` R Package, refer to the manpage
+    https://r-data.pmagunia.com/dataset/r-dataset-package-survival-colon for details
+    """
+
+    @classmethod
+    def from_csv(cls, csv_path):
+        """Read from csv + preprocessing
+        2 continuous features + mean-std standardization
+        10 categorical features + one-hot encoding (embeddings might be better)
+        """
+        df = pd.read_csv(csv_path)
+        continuous_vars = ['age', 'nodes']
+        categorical_vars = ['study', 'rx', 'sex', 'obstruct', 'perfor',
+                            'adhere', 'differ', 'extent', 'surg', 'node4']
+        df_death = df[df['etype'] == 2]
+        prefix = 'feature'
+        for v in categorical_vars:
+            dummies = pd.get_dummies(df_death[v], prefix=f'{prefix}_{v}')
+            df_death = pd.concat([df_death, dummies], axis=1)
+        for v in continuous_vars:
+            series = df_death[v]
+            df_death[f'{prefix}_{v}'] = (series - series.mean()) / (series.std() + 1e-15)
+        feature_columns = [c for c in df_death.columns if c.startswith(prefix)]
+        feature_df = df_death[feature_columns]
+        nan_mask = ~pd.isnull(feature_df).sum(axis=1).values.astype(bool)
+        z = df_death[feature_columns].values[nan_mask]
+        y = df_death['time'].values[nan_mask]
+        delta = df_death['status'].values[nan_mask]
+        return cls(y=y, z=z, delta=delta)
+
+    def __init__(self, y, z, delta, stochastic=True):
+        self.sample_size = y.shape[0]
+        self.y = torch.tensor(y, dtype=torch.float).view(-1, 1)
+        self.delta = torch.tensor(delta, dtype=torch.float).view(-1, 1)
+        self.z = torch.tensor(z, dtype=torch.float)
+        if stochastic:
+            self.y = self.y.clone().detach().requires_grad_(True)
+
+    def __getitem__(self, item):
+        return self.z[item], self.y[item], self.delta[item]
+
+    def __len__(self):
+        return self.z.shape[0]
+
+    def sort(self):
+        order = torch.argsort(self.y, dim=0)[:, 0]
+        sort_y = self.y[order]
+        sort_delta = self.delta[order]
+        sort_z = self.z[order]
+        return sort_y, sort_delta, sort_z
+
+    def shuffle(self):
+        perm = torch.randperm(self.sample_size)
+        self.y = self.y[perm]
+        self.z = self.z[perm]
+        self.delta = self.delta[perm]
+
+    def cv_split(self, n_folds=5, shuffle=True):
+        """Reproduce the splitting CV setup in the paper
+        `Deep Extended Hazard Models for Survival Analysis`
+        """
+        samples_each = self.sample_size // n_folds
+        indices = 0
+        mask_ = torch.zeros([self.sample_size], dtype=torch.bool)
+        train_datasets, valid_datasets, test_datasets = [], [], []
+        if shuffle:
+            self.shuffle()
+        for i in range(n_folds):
+            mask = mask_.clone()
+            start = indices
+            # Last fold might be slightly bigger
+            stop = indices + samples_each if i < n_folds - 1 else self.sample_size
+            mask[start: stop] = True
+            test_z, test_y, test_delta = self[torch.where(mask)[0]]
+            train_valid_z, train_valid_y, train_valid_delta = self[torch.where(~mask)[0]]
+            n_valid = train_valid_z.shape[0] // 5  # 20% for valid
+            valid_z, train_z = train_valid_z[:n_valid], train_valid_z[n_valid:]
+            valid_y, train_y = train_valid_y[:n_valid], train_valid_y[n_valid:]
+            valid_delta, train_delta = train_valid_delta[:n_valid], train_valid_delta[n_valid:]
+            train_datasets.append(self.__class__(y=train_y, z=train_z, delta=train_delta))
+            valid_datasets.append(self.__class__(y=valid_y, z=valid_z, delta=valid_delta))
+            test_datasets.append(self.__class__(y=test_y, z=test_z, delta=test_delta))
+            indices = stop
+        return train_datasets, valid_datasets, test_datasets
