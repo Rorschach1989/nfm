@@ -33,13 +33,22 @@ class CoxEps(EpsDistribution):
         return torch.exp(x)
 
 
-class ParetoEps(EpsDistribution):
+class ParetoEps(EpsDistribution, nn.Module):
     """The configuration by Doksum 1987, see also example 4.7.1 in Bickel, Klassen, Ritov and Wellner
     P(\epsilon > t) = (1 + \eta e^t)^{-1/\eta}
     """
 
-    def __init__(self, eta=1.):  # By default the proportional odds model
-        self.eta = eta
+    def __init__(self, eta=1., learnable=False):  # By default the proportional odds model
+        nn.Module.__init__(self)
+        if not learnable:
+            self.log_eta = torch.log(torch.as_tensor(eta))
+        else:
+            # Essentially Gamma frailty model
+            self.log_eta = nn.Parameter(torch.log(torch.as_tensor(eta)), requires_grad=True)
+
+    @property
+    def eta(self):
+        return torch.exp(self.log_eta)
 
     def hazard(self, x):
         return torch.exp(x) / (1 + self.eta * torch.exp(x))
@@ -48,7 +57,31 @@ class ParetoEps(EpsDistribution):
         return x - torch.log(1 + self.eta * torch.exp(x))
 
     def cumulative_hazard(self, x):
-        return torch.log(1 + self.eta * torch.exp(x))
+        return torch.log(1 + self.eta * torch.exp(x)) / self.eta
+
+
+class GaussianMixtureEps(GaussianEps, nn.Module):
+    """A learnable gaussian mixture with pre-specified number of components"""
+
+    def __init__(self, n_components):
+        super(GaussianMixtureEps, self).__init__()
+        nn.Module.__init__(self)
+        self.n_components = n_components
+        self.log_scale = nn.Parameter(torch.log(torch.rand([n_components])), requires_grad=True)
+        self.mixture = nn.Parameter(torch.rand([n_components, 1]), requires_grad=True)
+
+    def hazard(self, x):
+        x = torch.exp(self.log_scale) * x.tile([1, self.n_components])
+        component_hs = super(GaussianMixtureEps, self).hazard(x)
+        return component_hs @ torch.softmax(self.mixture, dim=0)
+
+    def cumulative_hazard(self, x):
+        x = torch.exp(self.log_scale) * x.tile([1, self.n_components])
+        component_hs = super(GaussianMixtureEps, self).cumulative_hazard(x)
+        return component_hs @ torch.softmax(self.mixture, dim=0)
+
+    def log_hazard(self, x):
+        return torch.log(self.hazard(x))
 
 
 class NonparametricEps(EpsDistribution, nn.Module):  # This turns out to fail

@@ -1,16 +1,20 @@
 import torch
+import h5py
+import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset
 
 
-class Colon(Dataset):
-    """The COLON dataset, extracted via the `survival` R Package, refer to the manpage
-    https://r-data.pmagunia.com/dataset/r-dataset-package-survival-colon for details
+class SurvivalDataset(Dataset):
+    """Interface of survival datasets
     """
 
     @classmethod
-    def from_csv(cls, csv_path):
-        """Read from csv + preprocessing
+    def colon(cls, csv_path):
+        """
+        The COLON dataset, extracted via the `survival` R Package, refer to the manpage
+            https://r-data.pmagunia.com/dataset/r-dataset-package-survival-colon for details
+        Read from csv + preprocessing
         2 continuous features + mean-std standardization
         10 categorical features + one-hot encoding (embeddings might be better)
         """
@@ -32,6 +36,123 @@ class Colon(Dataset):
         z = df_death[feature_columns].values[nan_mask]
         y = df_death['time'].values[nan_mask]
         delta = df_death['status'].values[nan_mask]
+        return cls(y=y, z=z, delta=delta)
+
+    @classmethod
+    def whas(cls, dat_path):
+        """Whas dataset, see mlr3proba manpage for details https://rdrr.io/cran/mlr3proba/man/whas.html
+        Read from dat file (from this ftp directory: ftp://ftp.wiley.com/public/sci_tech_med/survival)
+        2 continuous features + mean-std standardization
+        3 categorical features + one-hot encoding
+        """
+        df = pd.read_csv(dat_path, sep=r'\s+', header=None)
+        df.columns = ['set', 'case', 't', 'lenfol', 'fstat', 'age', 'sex', 'bmi', 'chf', 'miord', 'nr']
+        continuous_vars = ['age', 'bmi']
+        categorical_vars = ['sex', 'chf', 'miord']
+        prefix = 'feature'
+        for v in categorical_vars:
+            dummies = pd.get_dummies(df[v], prefix=f'{prefix}_{v}')
+            df = pd.concat([df, dummies], axis=1)
+        for v in continuous_vars:
+            series = df[v]
+            df[f'{prefix}_{v}'] = (series - series.mean()) / (series.std() + 1e-15)
+        feature_columns = [c for c in df.columns if c.startswith(prefix)]
+        feature_df = df[feature_columns]
+        nan_mask = ~pd.isnull(feature_df).sum(axis=1).values.astype(bool)
+        z = df[feature_columns].values[nan_mask]
+        y = df['t'].values[nan_mask]
+        delta = df['fstat'].values[nan_mask]
+        return cls(y=y, z=z, delta=delta)
+
+    @classmethod
+    def metabric(cls, h5_path):
+        """Metabric dataset using the dataset available in DeepSurv's directory
+        https://raw.githubusercontent.com/jaredleekatzman/DeepSurv/master/experiments/data/metabric/metabric_IHC4_clinical_train_test.h5
+
+        Requires h5py for preprocessing
+        5 continuous features + mean-std standardization
+        4 categorical features + one-hot encoding
+        """
+        f = h5py.File(h5_path, 'r')
+        train = f['train']
+        test = f['test']
+        y = np.concatenate([train['t'][:], test['t'][:]], axis=0)
+        delta = np.concatenate([train['e'][:], test['e'][:]], axis=0)
+        raw_z = np.concatenate([train['x'][:], test['x'][:]], axis=0)
+        _z = []
+        for c in (0, 1, 2, 3, 8):  # Standardization
+            series = raw_z[:, c]
+            _z.append(((series - series.mean()) / (series.std() + 1e-15)).reshape(-1, 1))
+        for c in (4, 5, 6, 7):
+            _z.append(pd.get_dummies(raw_z[:, c]).values.astype(np.float))
+        z = np.concatenate(_z, axis=1)
+        return cls(y=y, z=z, delta=delta)
+
+    @classmethod
+    def gbsg(cls, h5_path):
+        """RotGBSG dataset using the dataset available in DeepSurv's directory
+        https://raw.githubusercontent.com/jaredleekatzman/DeepSurv/master/experiments/data/gbsg/gbsg_cancer_train_test.h5
+
+        Requires h5py for preprocessing
+        all features are either continuous or ordinal + mean-std standardization
+        """
+        f = h5py.File(h5_path, 'r')
+        train = f['train']
+        test = f['test']
+        y = np.concatenate([train['t'][:], test['t'][:]], axis=0)
+        delta = np.concatenate([train['e'][:], test['e'][:]], axis=0)
+        z = np.concatenate([train['x'][:], test['x'][:]], axis=0)
+        for c in range(z.shape[1]):
+            series = z[:, c]
+            z[:, c] = (series - series.mean()) / (series.std() + 1e-15)
+        return cls(y=y, z=z, delta=delta)
+
+    @classmethod
+    def support(cls, h5_path):
+        """SUPPORT dataset using the the dataset available in DeepSurv's directory
+        https://raw.githubusercontent.com/jaredleekatzman/DeepSurv/master/experiments/data/support/support_train_test.h5
+
+        Use the original + mean-std standardization
+        """
+        return cls.gbsg(h5_path)
+
+    @classmethod
+    def flchain(cls, csv_path):
+        """FLchain dataset using the RDataset api
+        https://vincentarelbundock.github.io/Rdatasets/csv/survival/flchain.cs
+
+        using the preprocessing routine of `pycox`
+        5 continuous features + mean-std standardization
+        3 categorical features + one-hot encoding
+        """
+        df = pd.read_csv(csv_path)
+        # From preprocessing logic of pycox
+        df = (df
+              .drop(['chapter', 'Unnamed: 0'], axis=1)
+              .loc[lambda x: x['creatinine'].isna() == False]
+              .reset_index(drop=True)
+              .assign(sex=lambda x: (x['sex'] == 'M')))
+
+        categorical = ['sample.yr', 'flc.grp']
+        for col in categorical:
+            df[col] = df[col].astype('category')
+        for col in df.columns.drop(categorical):
+            df[col] = df[col].astype('float32')
+        continuous_vars = ['age', 'kappa', 'creatinine', 'lambda', 'mgus']
+        categorical_vars = ['sex', 'sample.yr', 'flc.grp']
+        prefix = 'feature'
+        for v in categorical_vars:
+            dummies = pd.get_dummies(df[v], prefix=f'{prefix}_{v}')
+            df = pd.concat([df, dummies], axis=1)
+        for v in continuous_vars:
+            series = df[v]
+            df[f'{prefix}_{v}'] = (series - series.mean()) / (series.std() + 1e-15)
+        feature_columns = [c for c in df.columns if c.startswith(prefix)]
+        feature_df = df[feature_columns]
+        nan_mask = ~pd.isnull(feature_df).sum(axis=1).values.astype(bool)
+        z = df[feature_columns].values[nan_mask]
+        y = df['futime'].values[nan_mask]
+        delta = df['death'].values[nan_mask]
         return cls(y=y, z=z, delta=delta)
 
     def __init__(self, y, z, delta, stochastic=True):

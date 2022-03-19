@@ -18,10 +18,10 @@ class MonotoneLinear(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self) -> None:
-        init.kaiming_uniform_(self.log_weight, a=math.sqrt(5))
+        init.xavier_uniform_(self.log_weight)
         fan_in, _ = init._calculate_fan_in_and_fan_out(self.log_weight)
         bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
-        init.uniform_(self.bias, -bound, bound)
+        init.uniform_(self.bias, -bound, 0.)
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         return F.linear(input, torch.exp(self.log_weight), self.bias)
@@ -35,7 +35,8 @@ class MonotoneMLP(nn.Module):
         self._mlp = nn.Sequential(
             MonotoneLinear(in_features=1, out_features=num_hidden_units),
             nn.Tanh(),  # Sigmoid appears ok, ReLU is kinda weird
-            MonotoneLinear(in_features=num_hidden_units, out_features=1)
+            MonotoneLinear(in_features=num_hidden_units, out_features=1),
+            nn.Sigmoid()
         )
 
     def forward(self, x):

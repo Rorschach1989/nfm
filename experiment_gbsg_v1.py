@@ -11,7 +11,7 @@ from pycox.evaluation.eval_surv import EvalSurv
 
 torch.manual_seed(77)
 early_stopping_patience = 50
-data_full = SurvivalDataset.colon('./data/colon.csv')
+data_full = SurvivalDataset.gbsg('./gbsg_cancer_train_test.h5')
 fold_c_indices = []
 fold_ibs = []
 
@@ -26,12 +26,12 @@ for _ in tqdm(range(10)):
         valid_c_indices, test_c_indices = [], []
         valid_ibs, test_ibs = [], []
         m = nn.Sequential(
-            nn.Linear(in_features=25, out_features=128, bias=False),
+            nn.Linear(in_features=7, out_features=128, bias=False),
             nn.ReLU(),
             nn.Linear(in_features=128, out_features=1, bias=False),
         )
-        nll = TransNLL(eps_conf=CoxEps(), num_jumps=int(train_folds[i].delta.sum()))
-        optimizer = torch.optim.Adam(lr=1e-3, weight_decay=1e-3, params=list(m.parameters()) + list(nll.parameters()))
+        nll = TransNLL(eps_conf=GaussianEps(), num_jumps=int(train_folds[i].delta.sum()))
+        optimizer = torch.optim.NAdam(lr=1e-2, weight_decay=1e-2, params=list(m.parameters()) + list(nll.parameters()))
         for j in range(1000):
             m.train()
             m_z = m(z)
