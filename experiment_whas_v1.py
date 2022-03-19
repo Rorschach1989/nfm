@@ -11,7 +11,7 @@ from pycox.evaluation.eval_surv import EvalSurv
 
 torch.manual_seed(77)
 early_stopping_patience = 50
-data_full = SurvivalDataset.whas('./Second-Edition Data/whasncc.dat')
+data_full = SurvivalDataset.whas('./data/whasncc.dat')
 fold_c_indices = []
 fold_ibs = []
 
