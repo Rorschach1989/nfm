@@ -94,7 +94,8 @@ class SurvivalDataset(Dataset):
         https://raw.githubusercontent.com/jaredleekatzman/DeepSurv/master/experiments/data/gbsg/gbsg_cancer_train_test.h5
 
         Requires h5py for preprocessing
-        all features are either continuous or ordinal + mean-std standardization
+        3 binary features
+        4 continuous features + mean-std standardization
         """
         f = h5py.File(h5_path, 'r')
         train = f['train']
@@ -102,7 +103,7 @@ class SurvivalDataset(Dataset):
         y = np.concatenate([train['t'][:], test['t'][:]], axis=0)
         delta = np.concatenate([train['e'][:], test['e'][:]], axis=0)
         z = np.concatenate([train['x'][:], test['x'][:]], axis=0)
-        for c in range(z.shape[1]):
+        for c in (3, 4, 5, 6):
             series = z[:, c]
             z[:, c] = (series - series.mean()) / (series.std() + 1e-15)
         return cls(y=y, z=z, delta=delta)
