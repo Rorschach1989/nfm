@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from .monotone import MonotoneMLP
 from .base import EpsDistribution
 
@@ -58,6 +59,54 @@ class ParetoEps(EpsDistribution, nn.Module):
 
     def cumulative_hazard(self, x):
         return torch.log(1 + self.eta * torch.exp(x)) / self.eta
+
+
+class BoxCoxEps(EpsDistribution, nn.Module):
+    """Box cox family of epsilon"""
+
+    def __init__(self, eta=1., learnable=False):
+        super(BoxCoxEps, self).__init__()
+        if not learnable:
+            self.log_eta = torch.log(torch.as_tensor(eta))
+        else:
+            self.log_eta = nn.Parameter(torch.log(torch.as_tensor(eta)), requires_grad=True)
+
+    @property
+    def eta(self):
+        return torch.exp(self.log_eta)
+
+    def hazard(self, x):
+        return torch.pow(1 + torch.exp(x), self.eta - 1) * torch.exp(x)
+
+    def log_hazard(self, x):
+        return x + (self.eta - 1) * F.softplus(x)
+
+    def cumulative_hazard(self, x):
+        return (torch.pow(1 + torch.exp(x), self.eta) - 1) / self.eta
+
+
+class PositiveStableEps(EpsDistribution, nn.Module):
+    """The positive stable family"""
+
+    def __init__(self, mu=1., learnable=False):
+        super(PositiveStableEps, self).__init__()
+        if not learnable:
+            self.log_mu = torch.log(torch.as_tensor(mu))
+        else:
+            self.log_mu = nn.Parameter(torch.log(torch.as_tensor(mu)), requires_grad=True)
+
+    @property
+    def mu(self):
+        return torch.exp(self.log_mu)
+
+    def hazard(self, x):
+        return self.mu * torch.exp(self.mu * x)
+
+    def log_hazard(self, x):
+        return self.log_mu + self.mu * x
+
+    def cumulative_hazard(self, x):
+        return torch.exp(self.mu * x)
 
 
 class GaussianMixtureEps(GaussianEps, nn.Module):

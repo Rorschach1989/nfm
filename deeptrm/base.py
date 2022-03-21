@@ -50,6 +50,9 @@ class NPMLENLL(nn.Module):
         return step_fn[idxes].view(-1, 1)
 
     def get_survival_prediction(self, m_z, y_test):  # Presumably run in no_grad mode
+        """Survival prediction taking the shape N * N, with N being sample size
+        semantics shall be: m[i, j] denotes the survival prediction of individual j at ordered event time t_i
+        """
         lambda_arg = torch.log(self.get_transform_prediction(y_test)) + m_z.view(1, -1)
         return self.eps_conf.survival(lambda_arg)
 
