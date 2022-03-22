@@ -27,16 +27,32 @@ class MonotoneLinear(nn.Module):
         return F.linear(input, torch.exp(self.log_weight), self.bias)
 
 
+class SkipWrapper(nn.Module):
+    """Wrapping a linear layer and activation/skip connections"""
+
+    def __init__(self, linear: MonotoneLinear, act='tanh', skip_connection=True):
+        super(SkipWrapper, self).__init__()
+        self.linear = linear
+        self.projection = MonotoneLinear(linear.in_features, linear.out_features)
+        self.act = getattr(F, act, F.tanh)
+        self.skip_connection = skip_connection
+
+    def forward(self, x):
+        nonlinear_out = self.act(self.linear(x))
+        proj = self.projection(x)
+        return nonlinear_out + proj if self.skip_connection else nonlinear_out
+
+
 class MonotoneMLP(nn.Module):
     """A reference two-layer architecture for approximating UNIVARIATE monotone functions"""
 
     def __init__(self, num_hidden_units):
         super(MonotoneMLP, self).__init__()
         self._mlp = nn.Sequential(
-            MonotoneLinear(in_features=1, out_features=num_hidden_units),
+            SkipWrapper(MonotoneLinear(in_features=1, out_features=num_hidden_units)),
             nn.Tanh(),  # Sigmoid appears ok, ReLU is kinda weird
-            MonotoneLinear(in_features=num_hidden_units, out_features=1),
-            nn.Sigmoid()
+            SkipWrapper(MonotoneLinear(in_features=num_hidden_units, out_features=1)),
+            # nn.Sigmoid()
         )
 
     def forward(self, x):
