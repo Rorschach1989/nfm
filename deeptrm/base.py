@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from .monotone import MonotoneMLP
+from .umnn import UMNN
 
 
 class EpsDistribution(object):
@@ -93,14 +94,18 @@ class MonotoneNLL(nn.Module):
     def __init__(self, eps_conf: EpsDistribution, num_hidden_units):
         super(MonotoneNLL, self).__init__()
         self.eps_conf = eps_conf
-        self.h = MonotoneMLP(num_hidden_units=num_hidden_units)
+        self.h = UMNN(num_hidden_units=num_hidden_units)
+
+    def get_survival_prediction(self, m_z, y_test):
+        lambda_arg = torch.log(self.h(y_test)) + m_z.view(1, -1)
+        return self.eps_conf.survival(lambda_arg)
 
     def forward(self, m_z, y, delta):
         """c.f. NPMLENLL, the calculation is way more direct"""
         uncensored = torch.where(delta)[0]
         batch_size = y.shape[0]
-        # h_y = self.h(y)
-        # h_derive_y = self.h.get_derivative(y)
+        h_y = self.h(y)
+        h_derive_y = self.h.get_derivative(y)
         h_y_ = self.h(y)
         h_y = torch.log(h_y_)
         h_derive_y = self.h.get_derivative(y) / (h_y_ + 1e-15)

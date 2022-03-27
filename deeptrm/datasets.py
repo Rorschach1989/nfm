@@ -3,6 +3,7 @@ import h5py
 import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset
+from pycox.datasets import kkbox_v1 as kkbox
 
 
 class SurvivalDataset(Dataset):
@@ -154,6 +155,31 @@ class SurvivalDataset(Dataset):
         z = df[feature_columns].values[nan_mask]
         y = df['futime'].values[nan_mask]
         delta = df['death'].values[nan_mask]
+        return cls(y=y, z=z, delta=delta)
+
+    @classmethod
+    def kkbox(cls, subset):
+        """kkbox dataset via the pycox api (presumes preprocessing is done properly)
+
+        Preprocessing according to the paper
+        `Time-to-Event Prediction with Neural Networks and Cox Regression`
+        """
+        df = kkbox.read_df(subset=subset)
+        continuous_vars = ['log_days_between_subs', 'n_prev_churns', 'log_days_since_reg_init',
+                           'log_payment_plan_days', 'log_plan_list_price', 'log_actual_amount_paid', 'age_at_start']
+        categorical_vars = ['strange_age', 'nan_days_since_reg_init', 'no_prev_churns', 'is_auto_renew',
+                            'is_cancel', 'city', 'gender', 'registered_via']
+        prefix = 'feature'
+        for v in categorical_vars:
+            dummies = pd.get_dummies(df[v], prefix=f'{prefix}_{v}')
+            df = pd.concat([df, dummies], axis=1)
+        for v in continuous_vars:
+            series = df[v]
+            df[f'{prefix}_{v}'] = (series - series.mean()) / (series.std() + 1e-15)
+        feature_columns = [c for c in df.columns if c.startswith(prefix)]
+        z = df[feature_columns].values
+        y = df['duration']
+        delta = df['event']
         return cls(y=y, z=z, delta=delta)
 
     def __init__(self, y, z, delta, stochastic=True):
