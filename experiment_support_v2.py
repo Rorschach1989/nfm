@@ -49,15 +49,15 @@ for _ in tqdm(range(1)):
                 pred_test = m(z_test)
                 tg_valid = np.linspace(y_valid.numpy().min(), y_valid.numpy().max(), 100)
                 tg_test = np.linspace(y_test.numpy().min(), y_test.numpy().max(), 100)
-                surv_pred_valid = nll.get_survival_prediction(pred_valid, y_test=y_valid)
-                surv_pred_test = nll.get_survival_prediction(pred_test, y_test=y_test)
+                surv_pred_valid = nll.get_survival_prediction(pred_valid, y_test=torch.tensor(tg_valid).view(-1, 1))
+                surv_pred_test = nll.get_survival_prediction(pred_test, y_test=torch.tensor(tg_test).view(-1, 1))
                 valid_evaluator = EvalSurv(
-                    surv=pd.DataFrame(surv_pred_valid.numpy(), index=y_valid.numpy().reshape(-1)),
+                    surv=pd.DataFrame(surv_pred_valid.numpy(), index=tg_valid.reshape(-1)),
                     durations=y_valid.numpy().reshape(-1),
                     events=delta_valid.numpy().reshape(-1),
                     censor_surv='km')
                 test_evaluator = EvalSurv(
-                    surv=pd.DataFrame(surv_pred_test.numpy(), index=y_test.numpy().reshape(-1)),
+                    surv=pd.DataFrame(surv_pred_test.numpy(), index=tg_test.reshape(-1)),
                     durations=y_test.numpy().reshape(-1),
                     events=delta_test.numpy().reshape(-1),
                     censor_surv='km')

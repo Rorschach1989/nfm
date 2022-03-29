@@ -1,5 +1,6 @@
 import torch
 import numba
+import numpy as np
 
 
 def c_index(y_pred, y_true, delta):
@@ -36,4 +37,3 @@ def c_index_large_scale(y_pred, y_true, delta):
             nom = nom + m1_ij * m2_ij * delta[i]
             denom = denom + m2_ij * delta[i]
     return nom / denom
-
