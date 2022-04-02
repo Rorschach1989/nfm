@@ -10,7 +10,7 @@ with `mean(std)`
 | DeepEH   |       |      |          |      |        |         |       |
 | DeepHit  |       |      |          |      |        |         |       |
 | Deepsurv |       |      |          |      |        |         |       |
-| CoxTime  |       |      | 0。660    |      |        |         |       |
+| CoxTime  |       |      | 0.660    |      |        |         |       |
 
 
 ### Measured in integrated brier score
