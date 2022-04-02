@@ -6,20 +6,20 @@ with `mean(std)`
 ### Measured in c-index
 |          | colon | whas | metabric | gbsg | flhain | support | kkbox |
 |----------|-------|------|----------|------|--------|---------|-------|
-| Ours     |       |      |          |      |        |         |       |
+| Ours     |       |      | 0.651    |      |        |         |       |
 | DeepEH   |       |      |          |      |        |         |       |
 | DeepHit  |       |      |          |      |        |         |       |
 | Deepsurv |       |      |          |      |        |         |       |
-| CoxTime  |       |      |          |      |        |         |       |
+| CoxTime  |       |      | 0。660    |      |        |         |       |
 
 
 ### Measured in integrated brier score
 |          | colon | whas | metabric | gbsg | flhain | support | kkbox |
 |----------|-------|------|----------|------|--------|---------|-------|
-| Ours     |       |      |          |      |        |         |       |
+| Ours     |       |      | 0.178    |      |        |         |       |
 | DeepEH   |       |      |          |      |        |         |       |
 | DeepHit  |       |      |          |      |        |         |       |
 | Deepsurv |       |      |          |      |        |         |       |
-| CoxTime  |       |      |          |      |        |         |       |
+| CoxTime  |       |      | 0.166    |      |        |         |       |
 
 

@@ -51,8 +51,8 @@ class NPMLENLL(nn.Module):
         return step_fn[idxes].view(-1, 1)
 
     def get_survival_prediction(self, m_z, y_test):  # Presumably run in no_grad mode
-        """Survival prediction taking the shape N * N, with N being sample size
-        semantics shall be: m[i, j] denotes the survival prediction of individual j at ordered event time t_i
+        """Survival prediction taking the shape N * T, with N being sample size
+        semantics shall be: m[i, j] denotes the survival prediction of individual j at ordered time t_i
         """
         lambda_arg = torch.log(self.get_transform_prediction(y_test)) + m_z.view(1, -1)
         return self.eps_conf.survival(lambda_arg)
@@ -104,8 +104,8 @@ class MonotoneNLL(nn.Module):
         """c.f. NPMLENLL, the calculation is way more direct"""
         uncensored = torch.where(delta)[0]
         batch_size = y.shape[0]
-        h_y = self.h(y)
-        h_derive_y = self.h.get_derivative(y)
+        # h_y = self.h(y)
+        # h_derive_y = self.h.get_derivative(y)
         h_y_ = self.h(y)
         h_y = torch.log(h_y_)
         h_derive_y = self.h.get_derivative(y) / (h_y_ + 1e-15)
