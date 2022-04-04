@@ -1,25 +1,34 @@
-## Empirical evaluations
+## Empirical Evaluations
 
 **instructions**: fill in corresponding evaluation metrics under the same random seed & replications  
 with `mean(std)`
 
-### Measured in c-index
+### Measured in C-index
 |          | colon        | whas         | metabric     | gbsg         | flchain      | support      | kkbox        |
 |----------|--------------|--------------|--------------|--------------|--------------|--------------|--------------|
 | Ours     |              |              | 0.651        |              |              |              |              |
 | DeepEH   |              |              |              |              |              |              |              |
 | DeepHit  |              |              |              |              |              |              |              |
-| Deepsurv |              |              |              |              |              |              |              |
+| DeepSurv | 0.647(0.029) | 0.793(0.021) | 0.638(0.019) | 0.672(0.015) | 0.790(0.010) | 0.609(0.005) |              |
 | CoxTime  | 0.645(0.032) | 0.783(0.023) | 0.660(0.020) | 0.672(0.017) | 0.790(0.010) | 0.614(0.010) |              |
 
 
-### Measured in integrated brier score
+### Measured in Integrated Brier Score
 |          | colon        | whas         | metabric     | gbsg         | flchain      | support      | kkbox        |
 |----------|--------------|--------------|--------------|--------------|--------------|--------------|--------------|
 | Ours     |              |              | 0.178        |              |              |              |              |
 | DeepEH   |              |              |              |              |              |              |              |
 | DeepHit  |              |              |              |              |              |              |              |
-| Deepsurv |              |              |              |              |              |              |              |
+| DeepSurv | 0.186(0.011) | 0.127(0.010) | 0.166(0.008) | 0.178(0.005) | 0.101(0.004) | 0.192(0.003) |              |
 | CoxTime  | 0.189(0.012) | 0.135(0.011) | 0.166(0.008) | 0.179(0.006) | 0.103(0.007) | 0.192(0.004) |              |
 
+
+### Measured in Integrated NBLL
+|          | colon        | whas         | metabric     | gbsg         | flchain      | support      | kkbox        |
+|----------|--------------|--------------|--------------|--------------|--------------|--------------|--------------|
+| Ours     |              |              |              |              |              |              |              |
+| DeepEH   |              |              |              |              |              |              |              |
+| DeepHit  |              |              |              |              |              |              |              |
+| DeepSurv | 0.547(0.028) | 0.397(0.031) | 0.499(0.024) | 0.527(0.012) | 0.334(0.012) | 0.564(0.008) |              |
+| CoxTime  | 0.559(0.029) | 0.421(0.031) | 0.498(0.026) | 0.528(0.016) | 0.345(0.026) | 0.566(0.011) |              |
 

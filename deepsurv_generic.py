@@ -2,15 +2,19 @@ import numpy as np
 import torch
 import torchtuples as tt
 from pycox.evaluation.eval_surv import EvalSurv
-from pycox.models import CoxTime
-from pycox.models.cox_time import MLPVanillaCoxTime
+from pycox.models import CoxPH
 from tqdm import tqdm
 
 from deeptrm.datasets import SurvivalDataset
 
 torch.manual_seed(77)
 early_stopping_patience = 50
-data_full = SurvivalDataset.gbsg('./data/gbsg_cancer_train_test.h5')
+data_full = SurvivalDataset.colon('./data/colon.csv')
+# data_full = SurvivalDataset.flchain('./data/flchain.csv')
+# data_full = SurvivalDataset.gbsg('./data/gbsg_cancer_train_test.h5')
+# data_full = SurvivalDataset.metabric('./data/metabric_IHC4_clinical_train_test.h5')
+# data_full = SurvivalDataset.support('./data/support_train_test.h5')
+# data_full = SurvivalDataset.whas('./data/whasncc.dat')
 fold_c_indices = []
 fold_ibs = []
 fold_inbll = []
@@ -30,18 +34,18 @@ for _ in tqdm(range(10)):
         y_valid, delta_valid, z_valid = np_convert(*valid_folds[i].sort())
         y_test, delta_test, z_test = np_convert(*test_folds[i].sort())
 
-        labtrans = CoxTime.label_transform()
-        y, delta = labtrans.fit_transform(y, delta)
-        y_valid, delta_valid = labtrans.transform(y_valid, delta_valid)
         valid = tt.tuplefy(z_valid, (y_valid, delta_valid))
 
         in_features = z.shape[1]
         num_nodes = [32, 32]
+        out_features = 1
         batch_norm = True
         dropout = 0.1
-        net = MLPVanillaCoxTime(in_features, num_nodes, batch_norm, dropout)
+        output_bias = False
+        net = tt.practical.MLPVanilla(in_features, num_nodes, out_features, batch_norm,
+                                      dropout, output_bias=output_bias)
 
-        model = CoxTime(net, tt.optim.Adam, labtrans=labtrans)
+        model = CoxPH(net, tt.optim.Adam)
 
         batch_size = 256
         model.optimizer.set_lr(0.01)
