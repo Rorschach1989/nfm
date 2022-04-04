@@ -1,17 +1,12 @@
-import torch
-import torch.nn as nn
 import numpy as np
-import pandas as pd
-from tqdm import tqdm
-from deeptrm.datasets import SurvivalDataset
-from deeptrm.base import TransNLL, MonotoneNLL
-from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps
-from deeptrm.metric import c_index
-from pycox.evaluation.eval_surv import EvalSurv
-
+import torch
 import torchtuples as tt
+from pycox.evaluation.eval_surv import EvalSurv
 from pycox.models import CoxTime
 from pycox.models.cox_time import MLPVanillaCoxTime
+from tqdm import tqdm
+
+from deeptrm.datasets import SurvivalDataset
 
 torch.manual_seed(77)
 early_stopping_patience = 50
@@ -21,15 +16,14 @@ fold_ibs = []
 
 np.random.seed(77)
 
-
 for _ in tqdm(range(10)):
     # Performance seems to be highly dependent on initialization, doing merely a 5-fold CV does NOT
     # seem to provide stable results, therefore repeat 10 times with distinct shuffle
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
     for i in range(5):
-
         def np_convert(y_, delta_, z_):
-            return y_.detach().numpy().reshape(-1,), delta_.numpy().reshape(-1,), z_.numpy()
+            return y_.detach().numpy().reshape(-1, ), delta_.numpy().reshape(-1, ), z_.numpy()
+
 
         y, delta, z = np_convert(*train_folds[i].sort())
         y_valid, delta_valid, z_valid = np_convert(*valid_folds[i].sort())
@@ -42,8 +36,8 @@ for _ in tqdm(range(10)):
 
         in_features = z.shape[1]
         num_nodes = [32, 32]
-        batch_norm = False
-        dropout = 0.0
+        batch_norm = True
+        dropout = 0.1
         net = MLPVanillaCoxTime(in_features, num_nodes, batch_norm, dropout)
 
         model = CoxTime(net, tt.optim.Adam, labtrans=labtrans)
@@ -70,6 +64,5 @@ for _ in tqdm(range(10)):
         fold_c_indices.append(ev.concordance_td())
         fold_ibs.append(ev.integrated_brier_score(time_grid))
 
-
 print(np.asarray(fold_c_indices).mean(), np.asarray(fold_ibs).mean())
-
+print(np.asarray(fold_c_indices).std(), np.asarray(fold_ibs).std())
