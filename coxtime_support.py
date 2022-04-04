@@ -13,6 +13,7 @@ early_stopping_patience = 50
 data_full = SurvivalDataset.support('./data/support_train_test.h5')
 fold_c_indices = []
 fold_ibs = []
+fold_inbll = []
 
 np.random.seed(77)
 
@@ -59,10 +60,18 @@ for _ in tqdm(range(10)):
         ev = EvalSurv(surv, y_test, delta_test, censor_surv='km')
         time_grid = np.linspace(y_test.min(), y_test.max(), 100)
         ev.concordance_td(), ev.integrated_brier_score(time_grid), ev.integrated_nbll(time_grid)
-        # (0.673469387755102, 0.16019731847332178, 0.47326715483076937)
 
         fold_c_indices.append(ev.concordance_td())
         fold_ibs.append(ev.integrated_brier_score(time_grid))
+        fold_inbll.append(ev.integrated_nbll(time_grid))
 
-print(np.asarray(fold_c_indices).mean(), np.asarray(fold_ibs).mean())
-print(np.asarray(fold_c_indices).std(), np.asarray(fold_ibs).std())
+print(
+    np.around(np.asarray(fold_c_indices).mean(), 3),
+    np.around(np.asarray(fold_ibs).mean(), 3),
+    np.around(np.asarray(fold_inbll).mean(), 3)
+)
+print(
+    np.around(np.asarray(fold_c_indices).std(), 3),
+    np.around(np.asarray(fold_ibs).std(), 3),
+    np.around(np.asarray(fold_inbll).std(), 3)
+)
