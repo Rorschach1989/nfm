@@ -10,7 +10,7 @@ from deeptrm.datasets import SurvivalDataset
 
 torch.manual_seed(77)
 early_stopping_patience = 50
-data_full = SurvivalDataset.metabric('./data/metabric_IHC4_clinical_train_test.h5')
+data_full = SurvivalDataset.whas('./data/whasncc.dat')
 fold_c_indices = []
 fold_ibs = []
 fold_inbll = []

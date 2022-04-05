@@ -8,16 +8,22 @@ from deeptrm.base import TransNLL, MonotoneNLL
 from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps
 from deeptrm.metric import c_index
 from pycox.evaluation.eval_surv import EvalSurv
+from deepeh.loss import DehLoss
 
 torch.manual_seed(77)
 early_stopping_patience = 50
-data_full = SurvivalDataset.colon('./data/colon.csv')
+data_full = SurvivalDataset.gbsg('./data/gbsg_cancer_train_test.h5')
 fold_c_indices = []
 fold_ibs = []
-fold_inbll = []
+fold_nbll = []
+normalizing_factor = 1.
 
 
-for _ in tqdm(range(10)):
+def normalize(y):
+    return (y + 1.) / normalizing_factor
+
+
+for _ in tqdm(range(1)):
     # Performance seems to be highly dependent on initialization, doing merely a 5-fold CV does NOT
     # seem to provide stable results, therefore repeat 10 times with distinct shuffle
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
@@ -26,18 +32,19 @@ for _ in tqdm(range(10)):
         y = y.clone().detach().requires_grad_(False)
         valid_c_indices, test_c_indices = [], []
         valid_ibs, test_ibs = [], []
-        valid_inbll, test_inbll = [], []
+        valid_nbll, test_nbll = [], []
         m = nn.Sequential(
-            nn.Linear(in_features=25, out_features=128, bias=False),
+            nn.Linear(in_features=7, out_features=128, bias=False),
             nn.ReLU(),
-            nn.Linear(in_features=128, out_features=1, bias=False),
+            nn.Linear(in_features=128, out_features=2, bias=False),
         )
-        nll = TransNLL(eps_conf=CoxEps(), num_jumps=int(train_folds[i].delta.sum()))
-        optimizer = torch.optim.Adam(lr=1e-3, weight_decay=1e-3, params=list(m.parameters()) + list(nll.parameters()))
+        # nll = TransNLL(eps_conf=GaussianEps(), num_jumps=int(train_folds[i].delta.sum()))
+        nll = DehLoss()
+        optimizer = torch.optim.NAdam(lr=1e-2, weight_decay=1e-2, params=m.parameters())
         for j in range(1000):
             m.train()
             m_z = m(z)
-            loss = nll(m_z=m_z, y=y, delta=delta)
+            loss = nll(m_z=m_z, y=normalize(y), delta=delta)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -46,6 +53,7 @@ for _ in tqdm(range(10)):
                 with torch.no_grad():
                     y_valid, delta_valid, z_valid = valid_folds[i].sort()
                     y_test, delta_test, z_test = test_folds[i].sort()
+                    y_valid, y_test = normalize(y_valid), normalize(y_test)
                     pred_valid = m(z_valid)
                     pred_test = m(z_test)
                     tg_valid = np.linspace(y_valid.numpy().min(), y_valid.numpy().max(), 100)
@@ -66,23 +74,24 @@ for _ in tqdm(range(10)):
                     test_c_indices.append(test_evaluator.concordance_td())
                     valid_ibs.append(valid_evaluator.integrated_brier_score(time_grid=tg_valid))
                     test_ibs.append(test_evaluator.integrated_brier_score(time_grid=tg_test))
-                    valid_inbll.append(valid_evaluator.integrated_nbll(time_grid=tg_valid))
-                    test_inbll.append(test_evaluator.integrated_nbll(time_grid=tg_test))
+                    valid_nbll.append(valid_evaluator.integrated_nbll(time_grid=tg_valid))
+                    test_nbll.append(test_evaluator.integrated_nbll(time_grid=tg_test))
+                    # print(valid_c_indices[-1], test_c_indices[-1], valid_ibs[-1], test_ibs[-1])
         valid_c_argmax = np.argmax(valid_c_indices)
         valid_ibs_argmin = np.argmin(valid_ibs)
-        valid_inbll_argmin = np.argmin(valid_inbll)
+        valid_nbll_argmin = np.argmin(valid_nbll)
         # print(valid_argmax)
         fold_c_indices.append(np.asarray(test_c_indices)[valid_c_argmax])
         fold_ibs.append(np.asarray(test_ibs)[valid_ibs_argmin])
-        fold_inbll.append(np.asarray(test_inbll)[valid_inbll_argmin])
+        fold_nbll.append(np.asarray(test_nbll)[valid_nbll_argmin])
 
-print(
-    np.around(np.asarray(fold_c_indices).mean(), 3),
-    np.around(np.asarray(fold_ibs).mean(), 3),
-    np.around(np.asarray(fold_inbll).mean(), 3)
-)
-print(
-    np.around(np.asarray(fold_c_indices).std(), 3),
-    np.around(np.asarray(fold_ibs).std(), 3),
-    np.around(np.asarray(fold_inbll).std(), 3)
-)
+report_str = f"""
+Results:
+    mean c-index: {np.asarray(fold_c_indices).mean()}
+    std c-index: {np.asarray(fold_c_indices).std()}
+    mean ibs: {np.asarray(fold_ibs).mean()}
+    std ibs: {np.asarray(fold_ibs).std()}
+    mean ibll: {np.asarray(fold_nbll).mean()}
+    std ibll: {np.asarray(fold_nbll).std()} 
+"""
+print(report_str)
