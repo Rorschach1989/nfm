@@ -14,6 +14,7 @@ early_stopping_patience = 50
 data_full = SurvivalDataset.colon('./data/colon.csv')
 fold_c_indices = []
 fold_ibs = []
+fold_inbll = []
 
 
 for _ in tqdm(range(10)):
@@ -25,6 +26,7 @@ for _ in tqdm(range(10)):
         y = y.clone().detach().requires_grad_(False)
         valid_c_indices, test_c_indices = [], []
         valid_ibs, test_ibs = [], []
+        valid_inbll, test_inbll = [], []
         m = nn.Sequential(
             nn.Linear(in_features=25, out_features=128, bias=False),
             nn.ReLU(),
@@ -64,11 +66,23 @@ for _ in tqdm(range(10)):
                     test_c_indices.append(test_evaluator.concordance_td())
                     valid_ibs.append(valid_evaluator.integrated_brier_score(time_grid=tg_valid))
                     test_ibs.append(test_evaluator.integrated_brier_score(time_grid=tg_test))
+                    valid_inbll.append(valid_evaluator.integrated_nbll(time_grid=tg_valid))
+                    test_inbll.append(test_evaluator.integrated_nbll(time_grid=tg_test))
         valid_c_argmax = np.argmax(valid_c_indices)
         valid_ibs_argmin = np.argmin(valid_ibs)
+        valid_inbll_argmin = np.argmin(valid_inbll)
         # print(valid_argmax)
         fold_c_indices.append(np.asarray(test_c_indices)[valid_c_argmax])
         fold_ibs.append(np.asarray(test_ibs)[valid_ibs_argmin])
+        fold_inbll.append(np.asarray(test_inbll)[valid_inbll_argmin])
 
-
-print(np.asarray(fold_c_indices).mean(), np.asarray(fold_ibs).mean())
+print(
+    np.around(np.asarray(fold_c_indices).mean(), 3),
+    np.around(np.asarray(fold_ibs).mean(), 3),
+    np.around(np.asarray(fold_inbll).mean(), 3)
+)
+print(
+    np.around(np.asarray(fold_c_indices).std(), 3),
+    np.around(np.asarray(fold_ibs).std(), 3),
+    np.around(np.asarray(fold_inbll).std(), 3)
+)
