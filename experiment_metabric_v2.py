@@ -10,8 +10,8 @@ from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps,
 from deeptrm.metric import c_index
 from pycox.evaluation.eval_surv import EvalSurv
 
-torch.manual_seed(77)
-data_full = SurvivalDataset.support('./data/support_train_test.h5')
+
+data_full = SurvivalDataset.metabric('./data/metabric_IHC4_clinical_train_test.h5')
 fold_c_indices = []
 fold_ibs = []
 fold_nbll = []
@@ -19,28 +19,29 @@ normalizing_factor = 1e3
 
 
 def normalize(y):
-    return y / normalizing_factor
+    return (y + 1.) / normalizing_factor
 
 
-for _ in tqdm(range(10)):
+for i in tqdm(range(10)):
+    torch.manual_seed(77+i)
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
     for i in range(5):
         valid_c_indices, test_c_indices = [], []
         valid_ibs, test_ibs = [], []
         valid_nbll, test_nbll = [], []
         m = nn.Sequential(
-            nn.Linear(in_features=14, out_features=128, bias=False),
+            nn.Linear(in_features=13, out_features=256, bias=False),
             nn.ReLU(),
-            nn.Linear(in_features=128, out_features=1, bias=False)
+            nn.Linear(in_features=256, out_features=1, bias=False),
         )
-        nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True), num_hidden_units=256)
-        optimizer = torch.optim.Adam(lr=1e-3, params=list(m.parameters()) + list(nll.parameters()))
+        nll = MonotoneNLL(eps_conf=GaussianEps(), num_hidden_units=256)
+        optimizer = torch.optim.Adam(lr=1e-2, params=list(m.parameters()) + list(nll.parameters()))
         loader = DataLoader(train_folds[i], batch_size=128)
         for epoch in range(50):
             for z, y, delta in loader:
                 m.train()
                 m_z = m(z)
-                loss = nll(m_z=m_z, y=y/normalizing_factor, delta=delta)
+                loss = nll(m_z=m_z, y=normalize(y), delta=delta)
                 # loss += 1e-3 * sum(p.pow(2.0).sum() for p in m.parameters())
                 # loss += 1e-3 * sum(p.pow(2.0).sum() for p in nll.parameters())
                 optimizer.zero_grad()
@@ -50,7 +51,7 @@ for _ in tqdm(range(10)):
             with torch.no_grad():
                 y_valid, delta_valid, z_valid = valid_folds[i].sort()
                 y_test, delta_test, z_test = test_folds[i].sort()
-                y_valid, y_test = y_valid/normalizing_factor, y_test/normalizing_factor
+                y_valid, y_test = normalize(y_valid), normalize(y_test)
                 pred_valid = m(z_valid)
                 pred_test = m(z_test)
                 tg_valid = np.linspace(y_valid.numpy().min(), y_valid.numpy().max(), 100)
@@ -78,7 +79,6 @@ for _ in tqdm(range(10)):
             valid_c_argmax = np.argmax(valid_c_indices)
             valid_ibs_argmin = np.argmin(valid_ibs)
             valid_nbll_argmin = np.argmin(valid_nbll)
-            # print(valid_argmax)
             fold_c_indices.append(np.asarray(test_c_indices)[valid_c_argmax])
             fold_ibs.append(np.asarray(test_ibs)[valid_ibs_argmin])
             fold_nbll.append(np.asarray(test_nbll)[valid_nbll_argmin])
