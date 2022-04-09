@@ -76,10 +76,10 @@ for _ in tqdm(range(1)):
                     test_ibs.append(test_evaluator.integrated_brier_score(time_grid=tg_test))
                     valid_nbll.append(valid_evaluator.integrated_nbll(time_grid=tg_valid))
                     test_nbll.append(test_evaluator.integrated_nbll(time_grid=tg_test))
-                    print(i, j,
-                          valid_c_indices[-1], test_c_indices[-1],
-                          valid_ibs[-1], test_ibs[-1],
-                          valid_nbll[-1], test_nbll[-1])
+                    # print(i, j,
+                    #       valid_c_indices[-1], test_c_indices[-1],
+                    #       valid_ibs[-1], test_ibs[-1],
+                    #       valid_nbll[-1], test_nbll[-1])
         valid_c_argmax = np.argmax(valid_c_indices)
         valid_ibs_argmin = np.argmin(valid_ibs)
         valid_nbll_argmin = np.argmin(valid_nbll)

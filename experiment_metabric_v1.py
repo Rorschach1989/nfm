@@ -9,7 +9,7 @@ from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps
 from deeptrm.metric import c_index
 from pycox.evaluation.eval_surv import EvalSurv
 
-torch.manual_seed(77)
+# torch.manual_seed(77)
 early_stopping_patience = 50
 data_full = SurvivalDataset.metabric('./data/metabric_IHC4_clinical_train_test.h5')
 fold_c_indices = []
@@ -17,7 +17,8 @@ fold_ibs = []
 fold_inbll = []
 
 
-for _ in tqdm(range(10)):
+for i in tqdm(range(10)):
+    torch.manual_seed(77+i)
     # Performance seems to be highly dependent on initialization, doing merely a 5-fold CV does NOT
     # seem to provide stable results, therefore repeat 10 times with distinct shuffle
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
