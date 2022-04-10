@@ -5,6 +5,7 @@ import math
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
+from .utils import default_device
 
 
 def _flatten(sequence):
@@ -122,6 +123,6 @@ class UMNN(nn.Module):
         return self._derivative_mlp(x)
 
     def forward(self, x):
-        x0 = torch.zeros(x.shape)
+        x0 = torch.zeros(x.shape).to(default_device)
         return ParallelNeuralIntegral.apply(
             x0, x, self._derivative_mlp, _flatten(self._derivative_mlp.parameters()), self.nb_steps)
