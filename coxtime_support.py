@@ -57,6 +57,7 @@ for i in tqdm(range(10)):
         _ = model.compute_baseline_hazards()
 
         surv = model.predict_surv_df(z_test)
+        print(surv.shape)
 
         ev = EvalSurv(surv, y_test, delta_test, censor_surv='km')
         time_grid = np.linspace(y_test.min(), y_test.max(), 100)

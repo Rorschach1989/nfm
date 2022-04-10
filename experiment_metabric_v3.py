@@ -5,7 +5,7 @@ import pandas as pd
 from tqdm import tqdm
 from deeptrm.datasets import SurvivalDataset
 from deeptrm.base import TransNLL, MonotoneNLL
-from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps, PositiveStableEps
+from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps, PositiveStableEps, BoxCoxEps
 from deeptrm.metric import c_index
 from pycox.evaluation.eval_surv import EvalSurv
 
@@ -32,6 +32,9 @@ def npl(m_z, y, delta):
     return ((denom - m_z) * delta / sample_size).sum()
 
 
+n_hidden = 128
+
+
 for i in tqdm(range(10)):
     torch.manual_seed(77 + i)
     # Performance seems to be highly dependent on initialization, doing merely a 5-fold CV does NOT
@@ -44,9 +47,9 @@ for i in tqdm(range(10)):
         valid_ibs, test_ibs = [], []
         valid_inbll, test_inbll = [], []
         c = nn.Sequential(
-            nn.Linear(in_features=13, out_features=128, bias=False),
+            nn.Linear(in_features=13, out_features=n_hidden, bias=False),
             nn.ReLU(),
-            nn.Linear(in_features=128, out_features=1, bias=False),
+            nn.Linear(in_features=n_hidden, out_features=1, bias=False),
         )
 
         pl_optimizer = torch.optim.Adam(lr=1e-3, params=c.parameters())
@@ -62,9 +65,9 @@ for i in tqdm(range(10)):
             m = c
         else:
             m = nn.Sequential(
-                nn.Linear(in_features=13, out_features=128, bias=False),
+                nn.Linear(in_features=13, out_features=n_hidden, bias=False),
                 nn.ReLU(),
-                nn.Linear(in_features=128, out_features=1, bias=False),
+                nn.Linear(in_features=n_hidden, out_features=1, bias=False),
             )
         nll = TransNLL(eps_conf=ParetoEps(learnable=True), num_jumps=int(train_folds[i].delta.sum()))
         with torch.no_grad():

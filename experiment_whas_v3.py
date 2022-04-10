@@ -45,9 +45,9 @@ for i in tqdm(range(1)):
         valid_ibs, test_ibs = [], []
         valid_inbll, test_inbll = [], []
         c = nn.Sequential(
-            nn.Linear(in_features=8, out_features=256, bias=False),
+            nn.Linear(in_features=8, out_features=1024, bias=False),
             nn.ReLU(),
-            nn.Linear(in_features=256, out_features=1, bias=False),
+            nn.Linear(in_features=1024, out_features=1, bias=False),
         ).to(default_device)
 
         pl_optimizer = torch.optim.Adam(lr=1e-2, params=c.parameters())
@@ -63,9 +63,9 @@ for i in tqdm(range(1)):
             m = c
         else:
             m = nn.Sequential(
-                nn.Linear(in_features=8, out_features=256, bias=False),
+                nn.Linear(in_features=8, out_features=1024, bias=False),
                 nn.ReLU(),
-                nn.Linear(in_features=256, out_features=1, bias=False),
+                nn.Linear(in_features=1024, out_features=1, bias=False),
             ).to(default_device)
         nll = TransNLL(eps_conf=ParetoEps(learnable=True), num_jumps=int(train_folds[i].delta.sum()))
         with torch.no_grad():
@@ -101,8 +101,10 @@ for i in tqdm(range(1)):
                         durations=y_test.cpu().numpy().reshape(-1),
                         events=delta_test.cpu().numpy().reshape(-1),
                         censor_surv='km')
-                    valid_c_indices.append(valid_evaluator.concordance_td())
-                    test_c_indices.append(test_evaluator.concordance_td())
+                    # valid_c_indices.append(valid_evaluator.concordance_td())
+                    # test_c_indices.append(test_evaluator.concordance_td())
+                    valid_c_indices.append(c_index(-pred_valid, y_valid, delta_valid))
+                    test_c_indices.append(c_index(-pred_test, y_test, delta_test))
                     valid_ibs.append(valid_evaluator.integrated_brier_score(time_grid=tg_valid))
                     test_ibs.append(test_evaluator.integrated_brier_score(time_grid=tg_test))
                     valid_inbll.append(valid_evaluator.integrated_nbll(time_grid=tg_valid))

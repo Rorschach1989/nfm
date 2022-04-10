@@ -29,12 +29,12 @@ for i in tqdm(range(10)):
         valid_ibs, test_ibs = [], []
         valid_inbll, test_inbll = [], []
         m = nn.Sequential(
-            nn.Linear(in_features=8, out_features=256, bias=False),
+            nn.Linear(in_features=8, out_features=512, bias=False),
             nn.ReLU(),
-            nn.Linear(in_features=256, out_features=1, bias=False),
+            nn.Linear(in_features=512, out_features=1, bias=False),
         )
         nll = TransNLL(eps_conf=GaussianEps(), num_jumps=int(train_folds[i].delta.sum()))
-        optimizer = torch.optim.Adam(lr=1e-2, params=list(m.parameters()) + list(nll.parameters()))
+        optimizer = torch.optim.Adamax(lr=1e-2, params=list(m.parameters()) + list(nll.parameters()))
         for j in range(5000):
             m.train()
             m_z = m(z)
@@ -63,8 +63,10 @@ for i in tqdm(range(10)):
                         durations=y_test.numpy().reshape(-1),
                         events=delta_test.numpy().reshape(-1),
                         censor_surv='km')
-                    valid_c_indices.append(valid_evaluator.concordance_td())
-                    test_c_indices.append(test_evaluator.concordance_td())
+                    # valid_c_indices.append(valid_evaluator.concordance_td())
+                    # test_c_indices.append(test_evaluator.concordance_td())
+                    valid_c_indices.append(c_index(-pred_valid, y_valid, delta_valid))
+                    test_c_indices.append(c_index(-pred_test, y_test, delta_test))
                     valid_ibs.append(valid_evaluator.integrated_brier_score(time_grid=tg_valid))
                     test_ibs.append(test_evaluator.integrated_brier_score(time_grid=tg_test))
                     valid_inbll.append(valid_evaluator.integrated_nbll(time_grid=tg_valid))
