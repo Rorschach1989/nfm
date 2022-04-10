@@ -3,6 +3,7 @@ import h5py
 import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset
+from .utils import default_device
 from pycox.datasets import kkbox_v1 as kkbox
 
 
@@ -184,9 +185,9 @@ class SurvivalDataset(Dataset):
 
     def __init__(self, y, z, delta, stochastic=True):
         self.sample_size = y.shape[0]
-        self.y = torch.tensor(y, dtype=torch.float).view(-1, 1)
-        self.delta = torch.tensor(delta, dtype=torch.float).view(-1, 1)
-        self.z = torch.tensor(z, dtype=torch.float)
+        self.y = torch.tensor(y, dtype=torch.float, device=default_device).view(-1, 1)
+        self.delta = torch.tensor(delta, dtype=torch.float, device=default_device).view(-1, 1)
+        self.z = torch.tensor(z, dtype=torch.float, device=default_device)
         if stochastic:
             self.y = self.y.clone().detach().requires_grad_(True)
 

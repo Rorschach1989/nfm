@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from .monotone import MonotoneMLP
 from .umnn import UMNN
+from .utils import default_device
 
 
 class EpsDistribution(object):
@@ -38,6 +39,7 @@ class NPMLENLL(nn.Module):
         self.log_jump_sizes = nn.Parameter(
             torch.log(1e-3 * torch.ones([num_jumps], dtype=torch.float)), requires_grad=True)
         self._anchor: torch.Tensor = None
+        self.to(default_device)
 
     def _record_anchor(self, y, delta):
         if self._anchor is None:  # No checks for anchor incoherence
@@ -55,7 +57,8 @@ class NPMLENLL(nn.Module):
         semantics shall be: m[i, j] denotes the survival prediction of individual j at ordered time t_i
         """
         lambda_arg = torch.log(self.get_transform_prediction(y_test)) + m_z.view(1, -1)
-        return self.eps_conf.survival(lambda_arg)
+        shape = lambda_arg.shape
+        return self.eps_conf.survival(lambda_arg.view(-1, 1)).view(shape)
 
     def forward(self, m_z, y, delta):
         """Compute the negative log-likelihood given observed data, under log transform
@@ -71,7 +74,7 @@ class NPMLENLL(nn.Module):
         """
         self._record_anchor(y, delta)
         sample_size = y.shape[0]
-        total_jumps = torch.zeros([sample_size], dtype=torch.float)
+        total_jumps = torch.zeros([sample_size], dtype=torch.float, device=default_device)
         uncensored = torch.where(delta)[0]
         total_jumps[uncensored] = torch.exp(self.log_jump_sizes)
         log_h = torch.log(torch.cumsum(total_jumps, dim=0) + 1e-15).reshape([-1, 1])
@@ -95,6 +98,7 @@ class MonotoneNLL(nn.Module):
         super(MonotoneNLL, self).__init__()
         self.eps_conf = eps_conf
         self.h = UMNN(num_hidden_units=num_hidden_units)
+        self.to(default_device)
 
     def get_survival_prediction(self, m_z, y_test):
         lambda_arg = torch.log(self.h(y_test)) + m_z.view(1, -1)
