@@ -134,6 +134,44 @@ class GaussianMixtureEps(GaussianEps, nn.Module):
         return torch.log(self.hazard(x))
 
 
+class IGGEps(EpsDistribution, nn.Module):
+    """The IGG family in the paper by Kosorok et al.,
+    ROBUST INFERENCE FOR UNIVARIATE PROPORTIONAL HAZARDS FRAILTY REGRESSION MODELS
+    """
+
+    def __init__(self, alpha=0.5, gamma=1., alpha_learnable=False, gamma_learnable=True):
+        super(IGGEps, self).__init__()
+        logit_alpha = torch.log(torch.as_tensor(alpha) / (1 - torch.as_tensor(alpha)))
+        if alpha_learnable:
+            self.logit_alpha = nn.Parameter(logit_alpha, requires_grad=True)
+        else:
+            self.logit_alpha = logit_alpha
+        if gamma_learnable:
+            self.log_gamma = nn.Parameter(torch.log(torch.as_tensor(gamma)), requires_grad=True)
+        else:
+            self.log_gamma = torch.log(torch.as_tensor(gamma))
+
+    def _major_term(self, x):
+        return 1 + torch.exp(x + self.log_gamma) / (1 - self.alpha)
+
+    @property
+    def alpha(self):
+        return torch.sigmoid(self.logit_alpha)
+
+    @property
+    def gamma(self):
+        return torch.exp(self.log_gamma)
+
+    def hazard(self, x):
+        return torch.pow(self._major_term(x), self.alpha - 1) * torch.exp(x)
+
+    def cumulative_hazard(self, x):
+        return (torch.pow(self._major_term(x), self.alpha) - 1) * (1 - self.alpha) / (self.gamma * self.alpha)
+
+    def log_hazard(self, x):
+        return x + (self.alpha - 1) * torch.log(self._major_term(x))
+
+
 class NonparametricEps(EpsDistribution, nn.Module):  # This turns out to fail
     """Almost nonparametric version of a distribution with its cumulative hazard function approximated using
     a monotone neural net, the same idea in the paper https://arxiv.org/abs/1905.09690,
