@@ -32,10 +32,10 @@ def npl(m_z, y, delta):
     return ((denom - m_z) * delta / sample_size).sum()
 
 
-n_hidden = 256
+n_hidden = 64
 
 
-for i in tqdm(range(10)):
+for i in tqdm(range(1)):
     torch.manual_seed(77 + i)
     # Performance seems to be highly dependent on initialization, doing merely a 5-fold CV does NOT
     # seem to provide stable results, therefore repeat 10 times with distinct shuffle
@@ -49,11 +49,17 @@ for i in tqdm(range(10)):
         c = nn.Sequential(
             nn.Linear(in_features=13, out_features=n_hidden, bias=False),
             nn.ReLU(),
+            nn.BatchNorm1d(n_hidden),
+            nn.Dropout(0.5),
+            nn.Linear(in_features=n_hidden, out_features=n_hidden, bias=False),
+            nn.ReLU(),
+            nn.BatchNorm1d(n_hidden),
+            nn.Dropout(0.5),
             nn.Linear(in_features=n_hidden, out_features=1, bias=False),
         )
 
-        pl_optimizer = torch.optim.Adam(lr=1e-3, params=c.parameters())
-        for pl_step in range(500):
+        pl_optimizer = torch.optim.Adam(lr=1e-2, params=c.parameters())
+        for pl_step in range(100):
             c.train()
             m_z = c(z)
             pl_loss = npl(m_z=m_z, y=y, delta=delta)
@@ -67,15 +73,21 @@ for i in tqdm(range(10)):
             m = nn.Sequential(
                 nn.Linear(in_features=13, out_features=n_hidden, bias=False),
                 nn.ReLU(),
+                nn.BatchNorm1d(n_hidden),
+                nn.Dropout(0.5),
+                nn.Linear(in_features=n_hidden, out_features=n_hidden, bias=False),
+                nn.ReLU(),
+                nn.BatchNorm1d(n_hidden),
+                nn.Dropout(0.5),
                 nn.Linear(in_features=n_hidden, out_features=1, bias=False),
             )
-        nll = TransNLL(eps_conf=IGGEps(alpha=0.25), num_jumps=int(train_folds[i].delta.sum()))
+        nll = TransNLL(eps_conf=ParetoEps(learnable=True), num_jumps=int(train_folds[i].delta.sum()))
         with torch.no_grad():
             nll.log_jump_sizes.copy_(torch.log(breslow(delta, c(z)) + 1e-15).requires_grad_(True))
         optimizer = torch.optim.Adam(
             params=[
-                {'params': m.parameters(), 'lr': 1e-3, 'weight_decay': 1e-2},
-                {'params': nll.parameters(), 'lr': 1e-4, 'weight_decay': 1e-3}
+                {'params': m.parameters(), 'lr': 1e-2, 'weight_decay': 1e-2},
+                {'params': nll.parameters(), 'lr': 1e-1, 'weight_decay': 1e-3}
             ]
         )
         for j in range(1000):
@@ -115,7 +127,7 @@ for i in tqdm(range(10)):
         valid_c_argmax = np.argmax(valid_c_indices)
         valid_ibs_argmin = np.argmin(valid_ibs)
         valid_inbll_argmin = np.argmin(valid_inbll)
-        # print(valid_argmax)
+        print(np.max(test_c_indices), np.min(test_ibs), np.min(test_inbll))
         fold_c_indices.append(np.asarray(test_c_indices)[valid_c_argmax])
         fold_ibs.append(np.asarray(test_ibs)[valid_ibs_argmin])
         fold_inbll.append(np.asarray(test_inbll)[valid_inbll_argmin])
