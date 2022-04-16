@@ -23,7 +23,7 @@ for _ in tqdm(range(10)):
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
     for i in range(5):
         def np_convert(y_, delta_, z_):
-            return y_.detach().numpy().reshape(-1, ), delta_.numpy().reshape(-1, ), z_.numpy()
+            return y_.cpu().detach().numpy().reshape(-1, ), delta_.cpu().numpy().reshape(-1, ), z_.cpu().numpy()
 
 
         y, delta, z = np_convert(*train_folds[i].sort())
@@ -36,7 +36,7 @@ for _ in tqdm(range(10)):
         valid = tt.tuplefy(z_valid, (y_valid, delta_valid))
 
         in_features = z.shape[1]
-        num_nodes = [32, 32]
+        num_nodes = [128, 128]
         batch_norm = True
         dropout = 0.1
         net = MLPVanillaCoxTime(in_features, num_nodes, batch_norm, dropout)
