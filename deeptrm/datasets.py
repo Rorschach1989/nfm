@@ -2,6 +2,7 @@ import torch
 import h5py
 import numpy as np
 import pandas as pd
+import torch.nn.functional as F
 from torch.utils.data import Dataset
 from .utils import default_device
 from pycox.datasets import kkbox_v1 as kkbox
@@ -173,6 +174,7 @@ class SurvivalDataset(Dataset):
         prefix = 'feature'
         for v in categorical_vars:
             dummies = pd.get_dummies(df[v], prefix=f'{prefix}_{v}')
+            print(dummies.shape)
             df = pd.concat([df, dummies], axis=1)
         for v in continuous_vars:
             series = df[v]
@@ -196,6 +198,12 @@ class SurvivalDataset(Dataset):
 
     def __len__(self):
         return self.z.shape[0]
+
+    def apply_scaler(self, log_durations=True, standardize=True):
+        if log_durations:
+            self.y = torch.log1p(self.y)
+        if standardize:
+            self.y = F.normalize(self.y, dim=0).detach().requires_grad_(False)
 
     def sort(self):
         order = torch.argsort(self.y, dim=0)[:, 0]

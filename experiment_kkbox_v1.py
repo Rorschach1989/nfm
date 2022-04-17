@@ -51,7 +51,7 @@ for replicate in range(1):  # 10 for calculate std/mean
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            if not (i + 1) % 100:
+            if not (i + 1) % 1000:
                 m.eval()
                 with torch.no_grad():
                     pred_valid = m(z_valid)
@@ -74,8 +74,8 @@ for replicate in range(1):  # 10 for calculate std/mean
                         durations=y_test.cpu().numpy().reshape(-1),
                         events=delta_test.cpu().numpy().reshape(-1),
                         censor_surv='km')
-                    valid_c_indices.append(valid_evaluator.concordance_td(method='antolini'))
-                    test_c_indices.append(test_evaluator.concordance_td(method='antolini'))
+                    valid_c_indices.append(valid_evaluator.concordance_td())
+                    test_c_indices.append(test_evaluator.concordance_td())
                     valid_ibs.append(valid_evaluator.integrated_brier_score(time_grid=tg_valid))
                     test_ibs.append(test_evaluator.integrated_brier_score(time_grid=tg_test))
                     valid_inbll.append(valid_evaluator.integrated_nbll(time_grid=tg_valid))

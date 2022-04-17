@@ -15,14 +15,14 @@ data_full = SurvivalDataset.support('./data/support_train_test.h5')
 fold_c_indices = []
 fold_ibs = []
 fold_nbll = []
-normalizing_factor = 1e3
+normalizing_factor = 1.
 
 
 def normalize(y):
-    return y / normalizing_factor
+    return torch.log(y) / normalizing_factor
 
 
-for _ in tqdm(range(10)):
+for _ in tqdm(range(1)):
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
     for i in range(5):
         valid_c_indices, test_c_indices = [], []

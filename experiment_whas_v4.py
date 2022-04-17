@@ -4,29 +4,23 @@ import pandas as pd
 import torch.nn as nn
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from torch.nn import init
 from deeptrm.datasets import SurvivalDataset
 from deeptrm.base import TransNLL, MonotoneNLL
-from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, GaussianMixtureEps, BoxCoxEps, IGGEps
+from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps, BoxCoxEps, PositiveStableEps
 from deeptrm.metric import c_index
-from deeptrm.utils import default_device
 from pycox.evaluation.eval_surv import EvalSurv
 
 
-data_full = SurvivalDataset.metabric('./data/metabric_IHC4_clinical_train_test.h5')
-data_full.apply_scaler(standardize=False)
+data_full = SurvivalDataset.whas('./data/whasncc.dat')
+data_full.apply_scaler()
 fold_c_indices = []
 fold_ibs = []
 fold_nbll = []
-normalizing_factor = 1e3
+normalizing_factor = 1.
 
 
 def normalize(y):
     return y
-
-
-n_hidden = 128
-n_hidden_umnn = 128
 
 
 for i in tqdm(range(10)):
@@ -36,14 +30,14 @@ for i in tqdm(range(10)):
         test_c_indices, test_ibs, test_nbll = [], [], []
         valid_losses = []
         m = nn.Sequential(
-            nn.Linear(in_features=13, out_features=n_hidden, bias=False),
+            nn.Linear(in_features=8, out_features=512, bias=False),
             nn.ReLU(),
-            nn.Linear(in_features=n_hidden, out_features=1, bias=False),
-        ).to(default_device)
-        nll = MonotoneNLL(eps_conf=GaussianEps(), num_hidden_units=n_hidden_umnn).to(default_device)
+            nn.Linear(in_features=512, out_features=1, bias=False),
+        )
+        nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True), num_hidden_units=256)
         optimizer = torch.optim.Adam(lr=1e-2, params=list(m.parameters()) + list(nll.parameters()))
         loader = DataLoader(train_folds[i], batch_size=128)
-        for epoch in range(50):
+        for epoch in range(150):
             for z, y, delta in loader:
                 m.train()
                 m_z = m(z)

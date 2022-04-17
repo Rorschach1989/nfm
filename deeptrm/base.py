@@ -111,7 +111,7 @@ class MonotoneNLL(nn.Module):
         # h_y = self.h(y)
         # h_derive_y = self.h.get_derivative(y)
         h_y_ = self.h(y)
-        h_y = torch.log(h_y_)
+        h_y = torch.log(h_y_ + 1e-15)
         h_derive_y = self.h.get_derivative(y) / (h_y_ + 1e-15)
         lambda_arg = m_z + h_y
         surv_part = self.eps_conf.cumulative_hazard(lambda_arg).sum()

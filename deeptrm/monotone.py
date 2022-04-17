@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
+from typing import Union
 
 
 class MonotoneLinear(nn.Module):
@@ -30,7 +31,7 @@ class MonotoneLinear(nn.Module):
 class SkipWrapper(nn.Module):
     """Wrapping a linear layer and activation/skip connections"""
 
-    def __init__(self, linear: MonotoneLinear, act='tanh', skip_connection=True):
+    def __init__(self, linear: Union[nn.Linear, MonotoneLinear], act='tanh', skip_connection=True):
         super(SkipWrapper, self).__init__()
         self.linear = linear
         self.projection = MonotoneLinear(linear.in_features, linear.out_features)

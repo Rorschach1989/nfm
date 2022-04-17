@@ -5,7 +5,9 @@ import math
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn import init
 from .utils import default_device
+from .monotone import SkipWrapper, MonotoneLinear
 
 
 def _flatten(sequence):
