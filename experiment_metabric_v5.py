@@ -25,8 +25,8 @@ def normalize(y):
     return y
 
 
-n_hidden = 128
-n_hidden_umnn = 128
+n_hidden = 256
+n_hidden_umnn = 256
 
 
 for i in tqdm(range(10)):
@@ -41,7 +41,7 @@ for i in tqdm(range(10)):
             nn.Linear(in_features=n_hidden, out_features=1, bias=False),
         ).to(default_device)
         nll = MonotoneNLL(eps_conf=GaussianEps(), num_hidden_units=n_hidden_umnn).to(default_device)
-        optimizer = torch.optim.Adam(lr=1e-2, params=list(m.parameters()) + list(nll.parameters()))
+        optimizer = torch.optim.Adam(lr=1e-3, weight_decay=1e-2, params=list(m.parameters()) + list(nll.parameters()))
         loader = DataLoader(train_folds[i], batch_size=128)
         for epoch in range(50):
             for z, y, delta in loader:

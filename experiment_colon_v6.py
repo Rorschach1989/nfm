@@ -20,7 +20,7 @@ fold_ibs = []
 fold_inbll = []
 
 
-n_hidden = 256
+n_hidden = 128
 
 
 for i in tqdm(range(10)):
@@ -41,7 +41,7 @@ for i in tqdm(range(10)):
         umnn_nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True), num_hidden_units=256)
 
         umnn_optimizer = torch.optim.Adam(
-            lr=1e-3, params=list(c.parameters()) + list(umnn_nll.parameters()))
+            lr=1e-3, weight_decay=1e-3, params=list(c.parameters()) + list(umnn_nll.parameters()))
         loader = DataLoader(train_folds[i], batch_size=128)
         for epoch in range(10):
             for z_, y_, delta_ in loader:
@@ -67,7 +67,7 @@ for i in tqdm(range(10)):
         optimizer = torch.optim.Adam(
             params=[
                 {'params': m.parameters(), 'lr': 1e-3, 'weight_decay': 1e-3},
-                {'params': nll.parameters(), 'lr': 1e-5, 'weight_decay': 1e-4}
+                {'params': nll.parameters(), 'lr': 1e-3, 'weight_decay': 1e-3}
             ]
         )
         for j in range(500):

@@ -12,7 +12,7 @@ from pycox.evaluation.eval_surv import EvalSurv
 
 
 data_full = SurvivalDataset.colon('./data/colon.csv')
-data_full.apply_scaler()
+data_full.apply_scaler(standardize=False)
 fold_c_indices = []
 fold_ibs = []
 fold_nbll = []
