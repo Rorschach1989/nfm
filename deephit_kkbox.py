@@ -23,7 +23,7 @@ fold_inbll = []
 
 np.random.seed(77)
 
-for j in tqdm(range(1)):
+for j in tqdm(range(10)):
     torch.manual_seed(77 + j)
     # Performance seems to be highly dependent on initialization, doing merely a 5-fold CV does NOT
     # seem to provide stable results, therefore repeat 10 times with distinct shuffle
@@ -31,7 +31,7 @@ for j in tqdm(range(1)):
     y_valid, delta_valid, z_valid = np_convert(*kkbox_valid.sort())
     y_test, delta_test, z_test = np_convert(*kkbox_test.sort())
 
-    num_durations = 10
+    num_durations = 20
     labtrans = DeepHitSingle.label_transform(num_durations)
     y, delta = labtrans.fit_transform(y, delta)
     y_valid, delta_valid = labtrans.transform(y_valid, delta_valid)
