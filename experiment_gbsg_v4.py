@@ -32,10 +32,10 @@ def npl(m_z, y, delta):
     return ((denom - m_z) * delta / sample_size).sum()
 
 
-n_hidden = 128
+n_hidden = 512
 
 
-for i in tqdm(range(1)):
+for i in tqdm(range(10)):
     torch.manual_seed(77 + i)
     # Performance seems to be highly dependent on initialization, doing merely a 5-fold CV does NOT
     # seem to provide stable results, therefore repeat 10 times with distinct shuffle
@@ -49,6 +49,7 @@ for i in tqdm(range(1)):
         c = nn.Sequential(
             nn.Linear(in_features=7, out_features=n_hidden, bias=False),
             nn.ReLU(),
+            nn.Dropout(0.5),
             nn.Linear(in_features=n_hidden, out_features=1, bias=False),
         )
 
@@ -67,6 +68,7 @@ for i in tqdm(range(1)):
             m = nn.Sequential(
                 nn.Linear(in_features=7, out_features=n_hidden, bias=False),
                 nn.ReLU(),
+                nn.Dropout(0.5),
                 nn.Linear(in_features=n_hidden, out_features=1, bias=False),
             )
         nll = TransNLL(eps_conf=ParetoEps(learnable=True), num_jumps=int(train_folds[i].delta.sum()))
@@ -74,8 +76,8 @@ for i in tqdm(range(1)):
             nll.log_jump_sizes.copy_(torch.log(breslow(delta, c(z)) + 1e-15).requires_grad_(True))
         optimizer = torch.optim.Adam(
             params=[
-                {'params': m.parameters(), 'lr': 1e-3},
-                {'params': nll.parameters(), 'lr': 5e-1}
+                {'params': m.parameters(), 'lr': 5e-3},
+                {'params': nll.parameters(), 'lr': 1e-4}
             ]
         )
         for j in range(1000):
@@ -106,8 +108,8 @@ for i in tqdm(range(1)):
                         durations=y_test.numpy().reshape(-1),
                         events=delta_test.numpy().reshape(-1),
                         censor_surv='km')
-                    valid_c_indices.append(valid_evaluator.concordance_td())
-                    test_c_indices.append(test_evaluator.concordance_td())
+                    valid_c_indices.append(c_index(-pred_valid, y_valid, delta_valid))
+                    test_c_indices.append(c_index(-pred_test, y_test, delta_test))
                     valid_ibs.append(valid_evaluator.integrated_brier_score(time_grid=tg_valid))
                     test_ibs.append(test_evaluator.integrated_brier_score(time_grid=tg_test))
                     valid_inbll.append(valid_evaluator.integrated_nbll(time_grid=tg_valid))

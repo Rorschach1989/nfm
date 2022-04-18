@@ -23,27 +23,32 @@ fold_inbll = []
 n_hidden = 256
 
 
-for i in tqdm(range(1)):
+for i in tqdm(range(10)):
     torch.manual_seed(77 + i)
     # Performance seems to be highly dependent on initialization, doing merely a 5-fold CV does NOT
     # seem to provide stable results, therefore repeat 10 times with distinct shuffle
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
     for i in range(5):
         y, delta, z = train_folds[i].sort()
+        y_valid, delta_valid, z_valid = valid_folds[i].sort()
+        y_test, delta_test, z_test = test_folds[i].sort()
         y = y.clone().detach().requires_grad_(False)
         test_c_indices, test_ibs, test_nbll = [], [], []
         valid_c_indices = []
         c = nn.Sequential(
             nn.Linear(in_features=13, out_features=n_hidden, bias=False),
             nn.ReLU(),
+            nn.Dropout(0.5),
             nn.Linear(in_features=n_hidden, out_features=1, bias=False),
         )
         umnn_nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True), num_hidden_units=256)
-
         umnn_optimizer = torch.optim.Adam(
-            lr=1e-3, params=list(c.parameters()) + list(umnn_nll.parameters()))
+            lr=1e-3, weight_decay=1e-2, params=list(c.parameters()) + list(umnn_nll.parameters()))
         loader = DataLoader(train_folds[i], batch_size=128)
-        for epoch in range(10):
+        val_losses = []
+        min_loss = np.inf
+        non_improvement = 0
+        for epoch in range(50):
             for z_, y_, delta_ in loader:
                 c.train()
                 c_z = c(z_)
@@ -51,6 +56,15 @@ for i in tqdm(range(1)):
                 umnn_optimizer.zero_grad()
                 loss.backward()
                 umnn_optimizer.step()
+                c.eval()
+            with torch.no_grad():
+                val_loss = umnn_nll(c(z_valid), y_valid, delta_valid).cpu().numpy()
+                if val_loss > min_loss:
+                    non_improvement += 1
+                else:
+                    min_loss = val_loss
+                if non_improvement >= 5:
+                    break
 
         if pretrain:
             m = c
@@ -58,6 +72,7 @@ for i in tqdm(range(1)):
             m = nn.Sequential(
                 nn.Linear(in_features=13, out_features=n_hidden, bias=False),
                 nn.ReLU(),
+                nn.Dropout(0.5),
                 nn.Linear(in_features=n_hidden, out_features=1, bias=False),
             )
         nll = TransNLL(eps_conf=ParetoEps(learnable=True), num_jumps=int(train_folds[i].delta.sum()))
@@ -67,10 +82,10 @@ for i in tqdm(range(1)):
         optimizer = torch.optim.Adam(
             params=[
                 {'params': m.parameters(), 'lr': 1e-3, 'weight_decay': 1e-2},
-                {'params': nll.parameters(), 'lr': 1e-3, 'weight_decay': 1e-2}
+                {'params': nll.parameters(), 'lr': 1e-4}
             ]
         )
-        for j in range(500):
+        for j in range(1000):
             m.train()
             m_z = m(z)
             loss = nll(m_z=m_z, y=y, delta=delta)
@@ -80,8 +95,6 @@ for i in tqdm(range(1)):
             m.eval()
             if not (j + 1) % early_stopping_patience:
                 with torch.no_grad():
-                    y_valid, delta_valid, z_valid = valid_folds[i].sort()
-                    y_test, delta_test, z_test = test_folds[i].sort()
                     pred_valid = m(z_valid)
                     pred_test = m(z_test)
                     tg_valid = np.linspace(y_valid.numpy().min(), y_valid.numpy().max(), 100)

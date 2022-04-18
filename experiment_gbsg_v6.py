@@ -10,20 +10,20 @@ from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps,
 from deeptrm.metric import c_index
 from pycox.evaluation.eval_surv import EvalSurv
 
-pretrain = False
+pretrain = True
 # torch.manual_seed(77)
 early_stopping_patience = 50
-data_full = SurvivalDataset.colon('./data/colon.csv')
+data_full = SurvivalDataset.gbsg('./data/gbsg_cancer_train_test.h5')
 data_full.apply_scaler(standardize=False)
 fold_c_indices = []
 fold_ibs = []
 fold_inbll = []
 
 
-n_hidden = 128
+n_hidden = 256
 
 
-for i in tqdm(range(10)):
+for i in tqdm(range(1)):
     torch.manual_seed(77 + i)
     # Performance seems to be highly dependent on initialization, doing merely a 5-fold CV does NOT
     # seem to provide stable results, therefore repeat 10 times with distinct shuffle
@@ -36,19 +36,18 @@ for i in tqdm(range(10)):
         test_c_indices, test_ibs, test_nbll = [], [], []
         valid_c_indices = []
         c = nn.Sequential(
-            nn.Linear(in_features=25, out_features=n_hidden, bias=False),
+            nn.Linear(in_features=7, out_features=n_hidden, bias=False),
             nn.ReLU(),
-            nn.Dropout(0.5),
             nn.Linear(in_features=n_hidden, out_features=1, bias=False),
         )
         umnn_nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True), num_hidden_units=256)
         umnn_optimizer = torch.optim.Adam(
-            lr=1e-3, weight_decay=1e-3, params=list(c.parameters()) + list(umnn_nll.parameters()))
+            lr=1e-3, weight_decay=1e-2, params=list(c.parameters()) + list(umnn_nll.parameters()))
         loader = DataLoader(train_folds[i], batch_size=128)
         val_losses = []
         min_loss = np.inf
         non_improvement = 0
-        for epoch in range(5):
+        for epoch in range(10):
             for z_, y_, delta_ in loader:
                 c.train()
                 c_z = c(z_)
@@ -70,9 +69,8 @@ for i in tqdm(range(10)):
             m = c
         else:
             m = nn.Sequential(
-                nn.Linear(in_features=25, out_features=n_hidden, bias=False),
+                nn.Linear(in_features=7, out_features=n_hidden, bias=False),
                 nn.ReLU(),
-                nn.Dropout(0.5),
                 nn.Linear(in_features=n_hidden, out_features=1, bias=False),
             )
         nll = TransNLL(eps_conf=ParetoEps(learnable=True), num_jumps=int(train_folds[i].delta.sum()))
@@ -81,11 +79,11 @@ for i in tqdm(range(10)):
             nll.log_jump_sizes.copy_(torch.log(h + 1e-15).requires_grad_(True))
         optimizer = torch.optim.Adam(
             params=[
-                {'params': m.parameters(), 'lr': 1e-3, 'weight_decay': 1e-4},
-                {'params': nll.parameters(), 'lr': 1e-4, 'weight_decay': 1e-4}
+                {'params': m.parameters(), 'lr': 1e-3, 'weight_decay': 1e-3},
+                {'params': nll.parameters(), 'lr': 1e-3, 'weight_decay': 1e-3}
             ]
         )
-        for j in range(500):
+        for j in range(1000):
             m.train()
             m_z = m(z)
             loss = nll(m_z=m_z, y=y, delta=delta)
