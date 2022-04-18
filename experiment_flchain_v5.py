@@ -24,8 +24,8 @@ def normalize(y):
     return y
 
 
-for i in tqdm(range(1)):
-    torch.manual_seed(77+i)
+for j in tqdm(range(10)):
+    torch.manual_seed(77+j)
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
     for i in range(5):
         test_c_indices, test_ibs, test_nbll = [], [], []
@@ -34,7 +34,7 @@ for i in tqdm(range(1)):
             nn.Linear(in_features=26, out_features=256, bias=False),
             nn.ReLU(),
             nn.Linear(in_features=256, out_features=1, bias=False),
-        )
+        ).to(default_device)
         nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True), num_hidden_units=512)
         optimizer = torch.optim.Adam(lr=1e-2, weight_decay=1e-3, params=list(m.parameters()) + list(nll.parameters()))
         loader = DataLoader(train_folds[i], batch_size=128)
