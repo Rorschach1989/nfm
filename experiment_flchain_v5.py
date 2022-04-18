@@ -24,8 +24,8 @@ def normalize(y):
     return y
 
 
-for i in tqdm(range(1)):
-    torch.manual_seed(77+i)
+for j in tqdm(range(10)):
+    torch.manual_seed(77+j)
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
     for i in range(5):
         test_c_indices, test_ibs, test_nbll = [], [], []
