@@ -9,6 +9,7 @@ from deeptrm.base import TransNLL, MonotoneNLL
 from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, IGGEps, BoxCoxEps, PositiveStableEps
 from deeptrm.metric import c_index
 from pycox.evaluation.eval_surv import EvalSurv
+from deeptrm.utils import default_device
 
 
 data_full = SurvivalDataset.flchain('./data/flchain.csv')
@@ -55,10 +56,10 @@ for i in tqdm(range(1)):
                 pred_valid = m(z_valid)
                 pred_test = m(z_test)
                 valid_loss = nll(pred_valid, y_valid, delta_valid)
-                valid_losses.append(valid_loss)
+                valid_losses.append(valid_loss.cpu().numpy())
                 tg_test = np.linspace(y_test.cpu().numpy().min(), y_test.cpu().numpy().max(), 100)
                 surv_pred_test = nll.get_survival_prediction(
-                    pred_test, y_test=torch.tensor(tg_test, dtype=torch.float).view(-1, 1))
+                    pred_test, y_test=torch.tensor(tg_test, dtype=torch.float).view(-1, 1).to(default_device))
                 test_evaluator = EvalSurv(
                     surv=pd.DataFrame(surv_pred_test.cpu().numpy(), index=tg_test.reshape(-1)),
                     durations=y_test.cpu().numpy().reshape(-1),
@@ -66,7 +67,7 @@ for i in tqdm(range(1)):
                     censor_surv='km')
                 # valid_c_indices.append(valid_evaluator.concordance_td(method='antolini'))
                 # test_c_indices.append(test_evaluator.concordance_td(method='antolini'))
-                test_c_indices.append(c_index(-pred_test, y_test, delta_test))
+                test_c_indices.append(c_index(-pred_test, y_test, delta_test).cpu().numpy())
                 test_ibs.append(test_evaluator.integrated_brier_score(time_grid=tg_test))
                 test_nbll.append(test_evaluator.integrated_nbll(time_grid=tg_test))
         valid_argmin = np.argmin(valid_losses)
