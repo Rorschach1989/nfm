@@ -34,7 +34,7 @@ for i in tqdm(range(1)):
             nn.Linear(in_features=26, out_features=256, bias=False),
             nn.ReLU(),
             nn.Linear(in_features=256, out_features=1, bias=False),
-        )
+        ).to(default_device)
         nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True), num_hidden_units=512)
         optimizer = torch.optim.Adam(lr=1e-2, weight_decay=1e-3, params=list(m.parameters()) + list(nll.parameters()))
         loader = DataLoader(train_folds[i], batch_size=128)
