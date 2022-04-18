@@ -12,7 +12,7 @@ from pycox.evaluation.eval_surv import EvalSurv
 from deeptrm.utils import default_device
 
 
-data_full = SurvivalDataset.flchain('./data/flchain.csv')
+data_full = SurvivalDataset.support('./data/support_train_test.h5')
 data_full.apply_scaler(standardize=False)
 fold_c_indices = []
 fold_ibs = []
@@ -24,19 +24,30 @@ def normalize(y):
     return y
 
 
-for i in tqdm(range(1)):
-    torch.manual_seed(77+i)
+for j in tqdm(range(10)):
+    torch.manual_seed(77+j)
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
     for i in range(5):
         test_c_indices, test_ibs, test_nbll = [], [], []
         valid_losses = []
         m = nn.Sequential(
-            nn.Linear(in_features=26, out_features=256, bias=False),
+            nn.Linear(in_features=14, out_features=128, bias=False),
             nn.ReLU(),
-            nn.Linear(in_features=256, out_features=1, bias=False),
+            nn.Dropout(0.2),
+            nn.Linear(in_features=128, out_features=1, bias=False),
+        ).to(default_device)
+        nll = MonotoneNLL(eps_conf=BoxCoxEps(learnable=True), num_hidden_units=256)
+        # optimizer = torch.optim.Adam(
+        #     lr=1e-3,
+        #     # weight_decay=1e-3,
+        #     params=list(m.parameters()) + list(nll.parameters())
+        # )
+        optimizer = torch.optim.Adam(
+            params=[
+                {'params': m.parameters(), 'lr': 1e-3, 'weight_decay': 1e-3},
+                {'params': nll.parameters(), 'lr': 1e-2, 'weight_decay': 1e-3}
+            ]
         )
-        nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True), num_hidden_units=512)
-        optimizer = torch.optim.Adam(lr=1e-2, weight_decay=1e-3, params=list(m.parameters()) + list(nll.parameters()))
         loader = DataLoader(train_folds[i], batch_size=128)
         for epoch in range(50):
             for z, y, delta in loader:
