@@ -174,7 +174,6 @@ class SurvivalDataset(Dataset):
         prefix = 'feature'
         for v in categorical_vars:
             dummies = pd.get_dummies(df[v], prefix=f'{prefix}_{v}')
-            print(dummies.shape)
             df = pd.concat([df, dummies], axis=1)
         for v in continuous_vars:
             series = df[v]

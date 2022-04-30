@@ -48,7 +48,7 @@ for i in tqdm(range(10)):
         val_losses = []
         min_loss = np.inf
         non_improvement = 0
-        for epoch in range(5):
+        for epoch in range(50):
             for z_, y_, delta_ in loader:
                 c.train()
                 c_z = c(z_)
@@ -63,6 +63,7 @@ for i in tqdm(range(10)):
                     non_improvement += 1
                 else:
                     min_loss = val_loss
+                    non_improvement = 0
                 if non_improvement >= 5:
                     break
 
