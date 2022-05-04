@@ -13,15 +13,15 @@ from deeptrm.utils import default_device
 
 
 data_full = SurvivalDataset.flchain('./data/flchain.csv')
-data_full.apply_scaler(standardize=False)
+# data_full.apply_scaler(standardize=False)
 fold_c_indices = []
 fold_ibs = []
 fold_nbll = []
-normalizing_factor = 1e3
+normalizing_factor = 366.25
 
 
 def normalize(y):
-    return y
+    return (y + 1) / normalizing_factor
 
 
 for j in tqdm(range(10)):

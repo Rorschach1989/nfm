@@ -10,22 +10,23 @@ class MonotoneLinear(nn.Module):
     """A slight modification of linear layer with positive constraint over weights
     via reparameterization, impl c.f. nn.Linear"""
 
-    def __init__(self, in_features, out_features):
+    def __init__(self, in_features, out_features, weight_transform='abs'):
         super(MonotoneLinear, self).__init__()
         self.in_features = in_features
         self.out_features = out_features
-        self.log_weight = nn.Parameter(torch.empty((out_features, in_features)))
+        self.weight = nn.Parameter(torch.empty((out_features, in_features)))
+        self.weight_transform = getattr(torch, weight_transform)
         self.bias = nn.Parameter(torch.empty(out_features))
         self.reset_parameters()
 
     def reset_parameters(self) -> None:
-        init.xavier_uniform_(self.log_weight)
-        fan_in, _ = init._calculate_fan_in_and_fan_out(self.log_weight)
+        init.xavier_uniform_(self.weight)
+        fan_in, _ = init._calculate_fan_in_and_fan_out(self.weight)
         bound = 1 / math.sqrt(fan_in) if fan_in > 0 else 0
         init.uniform_(self.bias, -bound, 0.)
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
-        return F.linear(input, torch.exp(self.log_weight), self.bias)
+        return F.linear(input, self.weight_transform(self.weight), self.bias)
 
 
 class SkipWrapper(nn.Module):

@@ -12,15 +12,15 @@ from pycox.evaluation.eval_surv import EvalSurv
 
 
 data_full = SurvivalDataset.whas('./data/whasncc.dat')
-data_full.apply_scaler()
+# data_full.apply_scaler()
 fold_c_indices = []
 fold_ibs = []
 fold_nbll = []
-normalizing_factor = 1.
+normalizing_factor = 366.25
 
 
 def normalize(y):
-    return y
+    return (y + 1) / normalizing_factor
 
 
 for i in tqdm(range(10)):
