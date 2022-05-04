@@ -90,14 +90,12 @@ TransNLL = NPMLENLL  # Default transformation model NLL
 
 class MonotoneNLL(nn.Module):
     """Transformation model NLL using monotone approximation of transformation function
-    To save from unnecessary complexity, here we do NOT use log-transformed h, i.e,
-    H(T) = -\beta^T Z + \epsilon
     """
 
-    def __init__(self, eps_conf: EpsDistribution, num_hidden_units):
+    def __init__(self, eps_conf: EpsDistribution, num_hidden_units, **kwargs):
         super(MonotoneNLL, self).__init__()
         self.eps_conf = eps_conf
-        self.h = UMNN(num_hidden_units=num_hidden_units)
+        self.h = UMNN(num_hidden_units=num_hidden_units, **kwargs)
         self.to(default_device)
 
     def get_survival_prediction(self, m_z, y_test):

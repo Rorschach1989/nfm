@@ -6,7 +6,7 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from deeptrm.datasets import SurvivalDataset
 from deeptrm.base import TransNLL, MonotoneNLL
-from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps, BoxCoxEps, PositiveStableEps
+from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps, BoxCoxEps, PositiveStableEps, IGGEps
 from deeptrm.metric import c_index
 from pycox.evaluation.eval_surv import EvalSurv
 
@@ -23,20 +23,19 @@ def normalize(y):
     return (y + 1) / normalizing_factor
 
 
-for i in tqdm(range(10)):
-    torch.manual_seed(77+i)
+for j in tqdm(range(10)):
+    torch.manual_seed(77+j)
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
     for i in range(5):
         test_c_indices, test_ibs, test_nbll = [], [], []
         valid_losses = []
         m = nn.Sequential(
-            nn.Linear(in_features=25, out_features=128, bias=False),
+            nn.Linear(in_features=25, out_features=32, bias=False),
             nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Linear(in_features=128, out_features=1, bias=False),
+            nn.Linear(in_features=32, out_features=1, bias=False),
         )
-        nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True), num_hidden_units=256)
-        optimizer = torch.optim.Adam(lr=1e-3, weight_decay=1e-3, params=list(m.parameters()) + list(nll.parameters()))
+        nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True), num_hidden_units=128)
+        optimizer = torch.optim.Adam(lr=1e-2, weight_decay=1e-3, params=list(m.parameters()) + list(nll.parameters()))
         loader = DataLoader(train_folds[i], batch_size=128)
         for epoch in range(50):
             for z, y, delta in loader:

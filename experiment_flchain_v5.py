@@ -31,13 +31,13 @@ for j in tqdm(range(10)):
         test_c_indices, test_ibs, test_nbll = [], [], []
         valid_losses = []
         m = nn.Sequential(
-            nn.Linear(in_features=26, out_features=256, bias=False),
+            nn.Linear(in_features=26, out_features=32, bias=False),
             nn.ReLU(),
-            nn.Linear(in_features=256, out_features=1, bias=False),
+            nn.Linear(in_features=32, out_features=1, bias=False),
         ).to(default_device)
-        nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True), num_hidden_units=512)
+        nll = MonotoneNLL(eps_conf=PositiveStableEps(learnable=True), num_hidden_units=128)
         optimizer = torch.optim.Adam(lr=1e-2, weight_decay=1e-3, params=list(m.parameters()) + list(nll.parameters()))
-        loader = DataLoader(train_folds[i], batch_size=128)
+        loader = DataLoader(train_folds[i], batch_size=256)
         for epoch in range(50):
             for z, y, delta in loader:
                 m.train()

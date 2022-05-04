@@ -80,6 +80,7 @@ for i in tqdm(range(10)):
                 {'params': nll.parameters(), 'lr': 1e-4}
             ]
         )
+        # optimizer = torch.optim.Adam(lr=1e-2, params=list(m.parameters()) + list(nll.parameters()))
         for j in range(1000):
             m.train()
             m_z = m(z)

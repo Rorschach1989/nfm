@@ -179,7 +179,7 @@ class NonparametricEps(EpsDistribution, nn.Module):  # This turns out to fail
 
     def __init__(self, num_hidden_units):
         nn.Module.__init__(self)
-        self.ch = UMNN(num_hidden_units=num_hidden_units)
+        self.ch = MonotoneMLP(num_hidden_units=num_hidden_units)
 
     def cumulative_hazard(self, x):
         return self.ch(x)

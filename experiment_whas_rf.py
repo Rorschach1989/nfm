@@ -15,7 +15,7 @@ fold_ibs = []
 fold_inbll = []
 
 
-for i in tqdm(range(10)):
+for i in tqdm(range(1)):
     torch.manual_seed(77 + i)
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
     for j in range(5):

@@ -27,7 +27,7 @@ for i in tqdm(range(10)):
             dtype=[('e.tdm', '?'), ('t.tdm', '<f8')]
         )
         est_cph_tree = GradientBoostingSurvivalAnalysis(
-            n_estimators=5000, learning_rate=0.1, max_depth=2, random_state=0
+            n_estimators=1000, learning_rate=0.1, max_depth=2, random_state=0
         )
         est_cph_tree.fit(z_train, train_tuple)
         survs = est_cph_tree.predict_survival_function(z_test)

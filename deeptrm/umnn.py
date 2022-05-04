@@ -111,13 +111,14 @@ class UMNN(nn.Module):
     `Unconstrained Monotonic Neural Networks`
     """
 
-    def __init__(self, num_hidden_units, nb_steps=50):
+    def __init__(self, num_hidden_units, nb_steps=50, positive_transform='elu1p'):
         super(UMNN, self).__init__()
+        positive_layer = PositiveELU() if positive_transform == 'elu1p' else nn.Softplus()
         self._derivative_mlp = nn.Sequential(
             nn.Linear(in_features=1, out_features=num_hidden_units),
             nn.ReLU(),
             nn.Linear(in_features=num_hidden_units, out_features=1),
-            PositiveELU()
+            positive_layer,
         )
         self.nb_steps = nb_steps
 
