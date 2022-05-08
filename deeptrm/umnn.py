@@ -7,7 +7,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import init
 from .utils import default_device
-from .monotone import SkipWrapper, MonotoneLinear
 
 
 def _flatten(sequence):
@@ -126,6 +125,8 @@ class UMNN(nn.Module):
         return self._derivative_mlp(x)
 
     def forward(self, x):
+        shape = x.shape
+        x = x.view(-1, 1)
         x0 = torch.zeros(x.shape).to(default_device)
         return ParallelNeuralIntegral.apply(
-            x0, x, self._derivative_mlp, _flatten(self._derivative_mlp.parameters()), self.nb_steps)
+            x0, x, self._derivative_mlp, _flatten(self._derivative_mlp.parameters()), self.nb_steps).view(shape)

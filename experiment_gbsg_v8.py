@@ -6,13 +6,12 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from deeptrm.datasets import SurvivalDataset
 from deeptrm.base import TransNLL, MonotoneNLL
-from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, IGGEps, BoxCoxEps, PositiveStableEps
+from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps, BoxCoxEps, PositiveStableEps, IGGEps
 from deeptrm.metric import c_index
 from pycox.evaluation.eval_surv import EvalSurv
-from deeptrm.utils import default_device
 
 
-data_full = SurvivalDataset.flchain('./data/flchain.csv')
+data_full = SurvivalDataset.gbsg('./data/gbsg_cancer_train_test.h5')
 # data_full.apply_scaler(standardize=False)
 fold_c_indices = []
 fold_ibs = []
@@ -21,45 +20,47 @@ normalizing_factor = 366.25
 
 
 def normalize(y):
-    return (y + 1) / normalizing_factor
+    return (y.clone().requires_grad_(True) + 1) / normalizing_factor
 
 
-for j in tqdm(range(10)):
+for j in tqdm(range(1)):
     torch.manual_seed(77+j)
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
     for i in range(5):
         test_c_indices, test_ibs, test_nbll = [], [], []
         valid_losses = []
         m = nn.Sequential(
-            nn.Linear(in_features=26, out_features=64, bias=False),
-            nn.Tanh(),
-            nn.Linear(in_features=64, out_features=1, bias=False),
-        ).to(default_device)
-        nll = MonotoneNLL(eps_conf=PositiveStableEps(learnable=True), num_hidden_units=128)
-        optimizer = torch.optim.Adam(lr=1e-2, weight_decay=1e-3, params=list(m.parameters()) + list(nll.parameters()))
-        loader = DataLoader(train_folds[i], batch_size=256)
-        for epoch in range(50):
+            nn.Linear(in_features=7, out_features=16, bias=False),
+            nn.ReLU(),
+            nn.Linear(in_features=16, out_features=1, bias=False),
+        )
+        # nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True), num_hidden_units=128)
+        nll = MonotoneNLL(eps_conf=NonparametricEps(128), num_hidden_units=256)
+        optimizer = torch.optim.Adam(lr=1e-2, weight_decay=1e-2, params=list(m.parameters()) + list(nll.parameters()))
+        loader = DataLoader(train_folds[i], batch_size=512)
+        for epoch in range(100):
             for z, y, delta in loader:
                 m.train()
                 m_z = m(z)
                 loss = nll(m_z=m_z, y=normalize(y), delta=delta)
-                # loss += 1e-3 * sum(p.abs().sum() for p in m.parameters())
+                # loss += 1e-3 * sum(p.pow(2.0).sum() for p in m.parameters())
                 # loss += 1e-3 * sum(p.pow(2.0).sum() for p in nll.parameters())
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
             m.eval()
+            # with torch.no_grad():
+            y_valid, delta_valid, z_valid = valid_folds[i].sort()
+            y_test, delta_test, z_test = test_folds[i].sort()
+            y_valid, y_test = normalize(y_valid), normalize(y_test)
+            pred_valid = m(z_valid)
+            pred_test = m(z_test)
+            valid_loss = nll(pred_valid, y_valid, delta_valid)
             with torch.no_grad():
-                y_valid, delta_valid, z_valid = valid_folds[i].sort()
-                y_test, delta_test, z_test = test_folds[i].sort()
-                y_valid, y_test = normalize(y_valid), normalize(y_test)
-                pred_valid = m(z_valid)
-                pred_test = m(z_test)
-                valid_loss = nll(pred_valid, y_valid, delta_valid)
-                valid_losses.append(valid_loss.cpu().numpy())
+                valid_losses.append(valid_loss.numpy())
                 tg_test = np.linspace(y_test.cpu().numpy().min(), y_test.cpu().numpy().max(), 100)
                 surv_pred_test = nll.get_survival_prediction(
-                    pred_test, y_test=torch.tensor(tg_test, dtype=torch.float).view(-1, 1).to(default_device))
+                    pred_test, y_test=torch.tensor(tg_test, dtype=torch.float).view(-1, 1))
                 test_evaluator = EvalSurv(
                     surv=pd.DataFrame(surv_pred_test.cpu().numpy(), index=tg_test.reshape(-1)),
                     durations=y_test.cpu().numpy().reshape(-1),
@@ -67,7 +68,7 @@ for j in tqdm(range(10)):
                     censor_surv='km')
                 # valid_c_indices.append(valid_evaluator.concordance_td(method='antolini'))
                 # test_c_indices.append(test_evaluator.concordance_td(method='antolini'))
-                test_c_indices.append(c_index(-pred_test, y_test, delta_test).cpu().numpy())
+                test_c_indices.append(c_index(-pred_test, y_test, delta_test))
                 test_ibs.append(test_evaluator.integrated_brier_score(time_grid=tg_test))
                 test_nbll.append(test_evaluator.integrated_nbll(time_grid=tg_test))
         valid_argmin = np.argmin(valid_losses)

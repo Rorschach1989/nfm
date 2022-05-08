@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 from typing import Union
+from .umnn import PositiveELU
 
 
 class MonotoneLinear(nn.Module):
@@ -51,10 +52,10 @@ class MonotoneMLP(nn.Module):
     def __init__(self, num_hidden_units):
         super(MonotoneMLP, self).__init__()
         self._mlp = nn.Sequential(
-            SkipWrapper(MonotoneLinear(in_features=1, out_features=num_hidden_units)),
+            MonotoneLinear(in_features=1, out_features=num_hidden_units),
             nn.Tanh(),  # Sigmoid appears ok, ReLU is kinda weird
-            SkipWrapper(MonotoneLinear(in_features=num_hidden_units, out_features=1)),
-            # nn.Sigmoid()
+            MonotoneLinear(in_features=num_hidden_units, out_features=1),
+            nn.Softplus()
         )
 
     def forward(self, x):

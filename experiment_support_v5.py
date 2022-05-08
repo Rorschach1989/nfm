@@ -12,8 +12,7 @@ from pycox.evaluation.eval_surv import EvalSurv
 from deeptrm.utils import default_device
 
 
-data_full = SurvivalDataset.flchain('./data/flchain.csv')
-# data_full.apply_scaler(standardize=False)
+data_full = SurvivalDataset.support('./data/support_train_test.h5')
 fold_c_indices = []
 fold_ibs = []
 fold_nbll = []
@@ -24,26 +23,26 @@ def normalize(y):
     return (y + 1) / normalizing_factor
 
 
-for j in tqdm(range(10)):
+for j in tqdm(range(1)):
     torch.manual_seed(77+j)
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
     for i in range(5):
         test_c_indices, test_ibs, test_nbll = [], [], []
         valid_losses = []
         m = nn.Sequential(
-            nn.Linear(in_features=26, out_features=64, bias=False),
-            nn.Tanh(),
-            nn.Linear(in_features=64, out_features=1, bias=False),
+            nn.Linear(in_features=14, out_features=128, bias=False),
+            nn.ReLU(),
+            nn.Linear(in_features=128, out_features=1, bias=False),
         ).to(default_device)
-        nll = MonotoneNLL(eps_conf=PositiveStableEps(learnable=True), num_hidden_units=128)
-        optimizer = torch.optim.Adam(lr=1e-2, weight_decay=1e-3, params=list(m.parameters()) + list(nll.parameters()))
-        loader = DataLoader(train_folds[i], batch_size=256)
+        nll = MonotoneNLL(eps_conf=IGGEps(alpha_learnable=True), num_hidden_units=256)
+        optimizer = torch.optim.Adam(lr=1e-3, weight_decay=1e-3, params=list(m.parameters()) + list(nll.parameters()))
+        loader = DataLoader(train_folds[i], batch_size=128)
         for epoch in range(50):
             for z, y, delta in loader:
                 m.train()
                 m_z = m(z)
                 loss = nll(m_z=m_z, y=normalize(y), delta=delta)
-                # loss += 1e-3 * sum(p.abs().sum() for p in m.parameters())
+                # loss += 1e-3 * sum(p.pow(2.0).sum() for p in m.parameters())
                 # loss += 1e-3 * sum(p.pow(2.0).sum() for p in nll.parameters())
                 optimizer.zero_grad()
                 loss.backward()

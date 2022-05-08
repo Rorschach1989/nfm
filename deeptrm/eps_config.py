@@ -182,7 +182,11 @@ class NonparametricEps(EpsDistribution, nn.Module):  # This turns out to fail
         self.ch = MonotoneMLP(num_hidden_units=num_hidden_units)
 
     def cumulative_hazard(self, x):
-        return self.ch(x)
+        shape = x.shape
+        x = x.view(-1, 1)
+        return self.ch(x).view(shape)
 
     def hazard(self, x):
-        return self.ch.get_derivative(x)
+        shape = x.shape
+        x = x.view(-1, 1)
+        return self.ch.get_derivative(x).view(shape)

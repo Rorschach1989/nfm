@@ -30,9 +30,9 @@ for i in tqdm(range(10)):
         test_c_indices, test_ibs, test_nbll = [], [], []
         valid_losses = []
         m = nn.Sequential(
-            nn.Linear(in_features=7, out_features=32, bias=False),
+            nn.Linear(in_features=7, out_features=16, bias=False),
             nn.ReLU(),
-            nn.Linear(in_features=32, out_features=1, bias=False),
+            nn.Linear(in_features=16, out_features=1, bias=False),
         )
         nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True),
                           num_hidden_units=256)
@@ -43,8 +43,6 @@ for i in tqdm(range(10)):
                 m.train()
                 m_z = m(z)
                 loss = nll(m_z=m_z, y=normalize(y), delta=delta)
-                # loss += 1e-3 * sum(p.pow(2.0).sum() for p in m.parameters())
-                # loss += 1e-3 * sum(p.pow(2.0).sum() for p in nll.parameters())
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
