@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from .monotone import MonotoneMLP
 from .umnn import UMNN
+from .umnn_v2 import ParallelNeuralIntegral, _flatten
 from .utils import default_device
 
 
@@ -25,6 +26,12 @@ class EpsDistribution(object):
 
     def survival(self, x):
         return torch.exp(-self.cumulative_hazard(x))
+
+    def g(self, x):
+        pass
+
+    def log_g_derivative(self, x):
+        pass
 
 
 class NPMLENLL(nn.Module):
@@ -116,3 +123,42 @@ class MonotoneNLL(nn.Module):
         intensity_part = - torch.log(h_derive_y[uncensored] + 1e-15).sum() \
                          - self.eps_conf.log_hazard(lambda_arg[uncensored]).sum()
         return (surv_part + intensity_part) / batch_size
+
+
+class FullyNeuralNLL(nn.Module):
+    """A more general model with
+    \lambda(t | Z) = e^{\mu(t, Z)}
+    with \mu provided outside
+    """
+
+    def __init__(self, eps_conf: EpsDistribution, encoder: nn.Module, nb_steps=20):
+        super(FullyNeuralNLL, self).__init__()
+        self.eps_conf = eps_conf
+        self.encoder = encoder  # encoder shall be a positive map
+        self.nb_steps = nb_steps
+
+    def get_survival_prediction(self, z_test, y_test):
+        batch_size = z_test.shape[0]
+        n_times = y_test.shape[0]
+        z_test_ = torch.tile(z_test, [n_times]).view(batch_size * n_times, -1)
+        y_test_ = torch.tile(y_test, [batch_size, 1]).view(batch_size * n_times, 1)
+        _, cum_hazard = self.get_cumulative_hazard(z_test_, y_test_)
+        return torch.exp(- cum_hazard).view(batch_size, n_times).T
+
+    def get_cumulative_hazard(self, z, y):
+        shape = y.shape
+        y = y.view(-1, 1)
+        z = z.reshape(y.shape[0], -1)
+        y0 = torch.zeros(y.shape).to(default_device)
+        int_encoder = ParallelNeuralIntegral.apply(
+            y0, y, self.encoder, _flatten(self.encoder.parameters()), z, self.nb_steps
+        ).view(shape)
+        return int_encoder, self.eps_conf.g(int_encoder)
+
+    def forward(self, z, y, delta):
+        uncensored = torch.where(delta)[0]
+        batch_size = y.shape[0]
+        int_encoder, cum_hazard = self.get_cumulative_hazard(z, y)
+        log_hazard = torch.log(self.encoder(y, z)) + self.eps_conf.log_g_derivative(int_encoder)
+        return (- log_hazard[uncensored].sum() + cum_hazard.sum()) / batch_size
+

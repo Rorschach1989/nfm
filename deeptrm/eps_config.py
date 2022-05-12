@@ -61,6 +61,12 @@ class ParetoEps(EpsDistribution, nn.Module):
     def cumulative_hazard(self, x):
         return torch.log(1 + self.eta * torch.exp(x)) / self.eta
 
+    def g(self, x):
+        return torch.log(1 + self.eta * x) / self.eta
+
+    def log_g_derivative(self, x):
+        return - torch.log(1 + self.eta * x)
+
 
 class BoxCoxEps(EpsDistribution, nn.Module):
     """Box cox family of epsilon"""

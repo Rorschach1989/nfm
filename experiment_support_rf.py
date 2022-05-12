@@ -29,8 +29,9 @@ for i in tqdm(range(10)):
         rsf = RandomSurvivalForest(n_estimators=500,
                                    min_samples_split=10,
                                    min_samples_leaf=5,
+                                   # min_samples_leaf=10,
                                    max_features="sqrt",
-                                   n_jobs=-1,
+                                   n_jobs=10,
                                    random_state=0)
         rsf.fit(z_train, train_tuple)
         survs = rsf.predict_survival_function(z_test)

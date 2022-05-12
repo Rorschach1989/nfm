@@ -23,27 +23,29 @@ def normalize(y):
     return (y + 1) / normalizing_factor
 
 
-for j in tqdm(range(1)):
+for j in tqdm(range(10)):
     torch.manual_seed(77+j)
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
     for i in range(5):
         test_c_indices, test_ibs, test_nbll = [], [], []
         valid_losses = []
         m = nn.Sequential(
-            nn.Linear(in_features=14, out_features=128, bias=False),
+            nn.Linear(in_features=14, out_features=32, bias=False),
             nn.ReLU(),
-            nn.Linear(in_features=128, out_features=1, bias=False),
+            nn.Linear(in_features=32, out_features=32, bias=False),
+            nn.ReLU(),
+            nn.Dropout(0.2),
+            nn.Linear(in_features=32, out_features=1, bias=False),
         ).to(default_device)
-        nll = MonotoneNLL(eps_conf=IGGEps(alpha_learnable=True), num_hidden_units=256)
-        optimizer = torch.optim.Adam(lr=1e-3, weight_decay=1e-3, params=list(m.parameters()) + list(nll.parameters()))
+        nll = MonotoneNLL(eps_conf=BoxCoxEps(learnable=True),
+                          num_hidden_units=256)
+        optimizer = torch.optim.NAdam(lr=1e-3, weight_decay=1e-3, params=list(m.parameters()) + list(nll.parameters()))
         loader = DataLoader(train_folds[i], batch_size=128)
         for epoch in range(50):
             for z, y, delta in loader:
                 m.train()
                 m_z = m(z)
                 loss = nll(m_z=m_z, y=normalize(y), delta=delta)
-                # loss += 1e-3 * sum(p.pow(2.0).sum() for p in m.parameters())
-                # loss += 1e-3 * sum(p.pow(2.0).sum() for p in nll.parameters())
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -70,6 +72,10 @@ for j in tqdm(range(1)):
                 test_ibs.append(test_evaluator.integrated_brier_score(time_grid=tg_test))
                 test_nbll.append(test_evaluator.integrated_nbll(time_grid=tg_test))
         valid_argmin = np.argmin(valid_losses)
+        # print(valid_argmin,
+        #       np.asarray(test_c_indices)[valid_argmin],
+        #       np.asarray(test_ibs)[valid_argmin],
+        #       np.asarray(test_nbll)[valid_argmin])
         fold_c_indices.append(np.asarray(test_c_indices)[valid_argmin])
         fold_ibs.append(np.asarray(test_ibs)[valid_argmin])
         fold_nbll.append(np.asarray(test_nbll)[valid_argmin])

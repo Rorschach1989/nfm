@@ -36,7 +36,7 @@ class SkipWrapper(nn.Module):
     def __init__(self, linear: Union[nn.Linear, MonotoneLinear], act='tanh', skip_connection=True):
         super(SkipWrapper, self).__init__()
         self.linear = linear
-        self.projection = MonotoneLinear(linear.in_features, linear.out_features)
+        self.projection = nn.Linear(linear.in_features, linear.out_features)
         self.act = getattr(F, act, F.tanh)
         self.skip_connection = skip_connection
 
