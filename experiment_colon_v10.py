@@ -50,13 +50,20 @@ class NetV2(nn.Module):
         self.te = TimeEncoder()
         self.mha = nn.MultiheadAttention(embed_dim=64, kdim=1, vdim=1, num_heads=1, batch_first=True)
         self.z_forward = nn.Linear(in_features=25, out_features=32)
-        self.out_forward = nn.Linear(in_features=64, out_features=1)
+        self.out_forward = nn.Sequential(
+            nn.Linear(in_features=64 + 64 + 32, out_features=256),
+            nn.ReLU(),
+            nn.Linear(in_features=256, out_features=1)
+        )
 
     def forward(self, y, z):
-        q = torch.unsqueeze(self.te(y), dim=1)  # [n, 1, 2 * d_time]
-        k = v = torch.unsqueeze(self.z_forward(z), dim=-1)  # [n, num_hidden, 1]
-        attn, _ = self.mha(q, k, v)  # [n, 1, embed_dim]
-        return torch.exp(self.out_forward(torch.squeeze(attn, dim=1)))
+        te = self.te(y)
+        z_f = self.z_forward(z)
+        q = torch.unsqueeze(te, dim=1)
+        k = v = torch.unsqueeze(z_f, dim=-1)
+        attn, _ = self.mha(q, k, v)
+        inputs = torch.cat([te, z_f, attn.squeeze(1)], dim=1)
+        return torch.exp(self.out_forward(inputs))
 
 
 data_full = SurvivalDataset.colon('./data/colon.csv')
@@ -68,10 +75,11 @@ normalizing_factor = 366.25
 
 
 def normalize(y):
+    # return y
     return (y + 1) / normalizing_factor
 
 
-for j in tqdm(range(10)):
+for j in tqdm(range(1)):
     torch.manual_seed(77+j)
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
     for i in range(5):

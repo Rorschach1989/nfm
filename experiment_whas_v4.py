@@ -37,7 +37,7 @@ for i in tqdm(range(10)):
         nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True), num_hidden_units=256)
         optimizer = torch.optim.Adam(lr=1e-2, params=list(m.parameters()) + list(nll.parameters()))
         loader = DataLoader(train_folds[i], batch_size=128)
-        for epoch in range(150):
+        for epoch in range(500):
             for z, y, delta in loader:
                 m.train()
                 m_z = m(z)

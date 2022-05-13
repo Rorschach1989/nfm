@@ -50,13 +50,20 @@ class NetV2(nn.Module):
         self.te = TimeEncoder()
         self.mha = nn.MultiheadAttention(embed_dim=64, kdim=1, vdim=1, num_heads=1, batch_first=True)
         self.z_forward = nn.Linear(in_features=13, out_features=32)
-        self.out_forward = nn.Linear(in_features=64, out_features=1)
+        self.out_forward = nn.Sequential(
+            nn.Linear(in_features=64 + 64 + 32, out_features=256),
+            nn.ReLU(),
+            nn.Linear(in_features=256, out_features=1)
+        )
 
     def forward(self, y, z):
-        q = torch.unsqueeze(self.te(y), dim=1)  # [n, 1, 2 * d_time]
-        k = v = torch.unsqueeze(self.z_forward(z), dim=-1)  # [n, num_hidden, 1]
-        attn, _ = self.mha(q, k, v)  # [n, 1, embed_dim]
-        return torch.exp(self.out_forward(torch.squeeze(attn, dim=1)))
+        te = self.te(y)
+        z_f = self.z_forward(z)
+        q = torch.unsqueeze(te, dim=1)
+        k = v = torch.unsqueeze(z_f, dim=-1)
+        attn, _ = self.mha(q, k, v)
+        inputs = torch.cat([te, z_f, attn.squeeze(1)], dim=1)
+        return torch.exp(self.out_forward(inputs))
 
 
 data_full = SurvivalDataset.metabric('./data/metabric_IHC4_clinical_train_test.h5')
@@ -68,6 +75,7 @@ normalizing_factor = 366.25
 
 
 def normalize(y):
+    # return y
     return (y + 1) / normalizing_factor
 
 
@@ -85,7 +93,7 @@ for j in tqdm(range(1)):
         # nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True),
         #                   num_hidden_units=128,
         #                   positive_transform='elu1p')
-        nll = FullyNeuralNLL(eps_conf=ParetoEps(learnable=True), encoder=NetV2())
+        nll = FullyNeuralNLL(eps_conf=ParetoEps(learnable=True), encoder=Net())
         optimizer = torch.optim.Adam(lr=1e-2, weight_decay=1e-3, params=nll.parameters())
         loader = DataLoader(train_folds[i], batch_size=128)
         for epoch in range(50):
@@ -103,6 +111,7 @@ for j in tqdm(range(1)):
                 y_test, delta_test, z_test = test_folds[i].sort()
                 y_valid, y_test = normalize(y_valid), normalize(y_test)
                 valid_loss = nll(z_valid, y_valid, delta_valid)
+                print(valid_loss)
                 valid_losses.append(valid_loss)
                 tg_test = np.linspace(y_test.cpu().numpy().min(), y_test.cpu().numpy().max(), 100)
                 surv_pred_test = nll.get_survival_prediction(
