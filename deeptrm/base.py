@@ -125,6 +125,23 @@ class MonotoneNLL(nn.Module):
         return (surv_part + intensity_part) / batch_size
 
 
+class CSNLL(MonotoneNLL):
+    """Use current status paradigm"""
+
+    def __init__(self, eps_conf: EpsDistribution, num_hidden_units, **kwargs):
+        super(CSNLL, self).__init__(eps_conf, num_hidden_units, **kwargs)
+        self.nll = nn.NLLLoss()
+
+    def forward(self, m_z, y, delta):
+        delta = delta.view(-1)
+        h_y_ = self.h(y)
+        h_y = torch.log(h_y_ + 1e-15)
+        lambda_arg = m_z + h_y
+        cum_h = self.eps_conf.cumulative_hazard(lambda_arg)
+        logits = torch.cat([-cum_h, torch.log(1 - torch.exp(-cum_h))], dim=1)
+        return self.nll(logits, delta.type(torch.long))
+
+
 class FullyNeuralNLL(nn.Module):
     """A more general model with
     \lambda(t | Z) = e^{\mu(t, Z)}
