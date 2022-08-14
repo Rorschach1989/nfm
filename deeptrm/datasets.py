@@ -184,6 +184,15 @@ class SurvivalDataset(Dataset):
         delta = df['event']
         return cls(y=y, z=z, delta=delta)
 
+    @classmethod
+    def mimiciii(cls, csv_path_features, csv_path_labels):
+        features = np.genfromtxt(csv_path_features, delimiter=',')
+        labels = np.genfromtxt(csv_path_labels, delimiter=',')
+        z = np.nan_to_num(features)
+        y = labels[:, 0]
+        delta = labels[:, 1]
+        return cls(y=y[y > 0], z=z[y > 0], delta=delta[y > 0])
+
     def __init__(self, y, z, delta, stochastic=True):
         self.sample_size = y.shape[0]
         self.y = torch.tensor(y, dtype=torch.float, device=default_device).view(-1, 1)

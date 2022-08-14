@@ -13,22 +13,23 @@ early_stopping_patience = 50
 # data_full = SurvivalDataset.flchain('./data/flchain.csv')
 # data_full = SurvivalDataset.gbsg('./data/gbsg_cancer_train_test.h5')
 # data_full = SurvivalDataset.metabric('./data/metabric_IHC4_clinical_train_test.h5')
-data_full = SurvivalDataset.support('./data/support_train_test.h5')
+# data_full = SurvivalDataset.support('./data/support_train_test.h5')
 # data_full = SurvivalDataset.whas('./data/whasncc.dat')
+data_full = SurvivalDataset.mimiciii('./data/mimiciii_features.csv', './data/mimiciii_labels.csv')
 fold_c_indices = []
 fold_ibs = []
 fold_inbll = []
 
 np.random.seed(77)
 
-for i in tqdm(range(10)):
+for i in tqdm(range(1)):
     torch.manual_seed(77+i)
     # Performance seems to be highly dependent on initialization, doing merely a 5-fold CV does NOT
     # seem to provide stable results, therefore repeat 10 times with distinct shuffle
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
     for i in range(5):
         def np_convert(y_, delta_, z_):
-            return y_.detach().numpy().reshape(-1, ), delta_.numpy().reshape(-1, ), z_.numpy()
+            return y_.cpu().detach().numpy().reshape(-1, ), delta_.cpu().numpy().reshape(-1, ), z_.cpu().numpy()
 
 
         y, delta, z = np_convert(*train_folds[i].sort())
