@@ -22,12 +22,12 @@ fold_inbll = []
 
 np.random.seed(77)
 
-for i in tqdm(range(1)):
-    torch.manual_seed(77+i)
+for j in tqdm(range(10)):
+    torch.manual_seed(77+j)
     # Performance seems to be highly dependent on initialization, doing merely a 5-fold CV does NOT
     # seem to provide stable results, therefore repeat 10 times with distinct shuffle
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
-    for i in range(5):
+    for i in range(0, 5):
         def np_convert(y_, delta_, z_):
             return y_.cpu().detach().numpy().reshape(-1, ), delta_.cpu().numpy().reshape(-1, ), z_.cpu().numpy()
 
