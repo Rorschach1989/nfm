@@ -191,7 +191,20 @@ class SurvivalDataset(Dataset):
         z = np.nan_to_num(features)
         y = labels[:, 0]
         delta = labels[:, 1]
-        return cls(y=y[y > 0], z=z[y > 0], delta=delta[y > 0])
+
+        idx = y > 0
+        z = z[idx]
+        y = y[idx]
+        delta = delta[idx]
+
+        from sklearn.ensemble import IsolationForest
+        idx = IsolationForest(random_state=0, contamination=0.001).fit_predict(z) == 1
+        z = z[idx]
+        y = y[idx]
+        delta = delta[idx]
+
+        z = (z - np.mean(z, axis=0)) / (np.std(z, axis=0) + 1e-15)
+        return cls(y=y, z=z, delta=delta)
 
     def __init__(self, y, z, delta, stochastic=True):
         self.sample_size = y.shape[0]
