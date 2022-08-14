@@ -184,24 +184,34 @@ class SurvivalDataset(Dataset):
         delta = df['event']
         return cls(y=y, z=z, delta=delta)
 
+    # @classmethod
+    # def mimiciii(cls, csv_path_features, csv_path_labels):
+    #     features = np.genfromtxt(csv_path_features, delimiter=',')
+    #     labels = np.genfromtxt(csv_path_labels, delimiter=',')
+    #     z = np.nan_to_num(features)
+    #     y = labels[:, 0]
+    #     delta = labels[:, 1]
+    #
+    #     idx = y > 0
+    #     z = z[idx]
+    #     y = y[idx]
+    #     delta = delta[idx]
+    #
+    #     from sklearn.ensemble import IsolationForest
+    #     idx = IsolationForest(random_state=0, contamination=0.001).fit_predict(z) == 1
+    #     z = z[idx]
+    #     y = y[idx]
+    #     delta = delta[idx]
+    #
+    #     z = (z - np.mean(z, axis=0)) / (np.std(z, axis=0) + 1e-15)
+    #     return cls(y=y, z=z, delta=delta)
+
     @classmethod
-    def mimiciii(cls, csv_path_features, csv_path_labels):
-        features = np.genfromtxt(csv_path_features, delimiter=',')
-        labels = np.genfromtxt(csv_path_labels, delimiter=',')
-        z = np.nan_to_num(features)
-        y = labels[:, 0]
-        delta = labels[:, 1]
-
-        idx = y > 0
-        z = z[idx]
-        y = y[idx]
-        delta = delta[idx]
-
-        from sklearn.ensemble import IsolationForest
-        idx = IsolationForest(random_state=0, contamination=0.001).fit_predict(z) == 1
-        z = z[idx]
-        y = y[idx]
-        delta = delta[idx]
+    def mimiciii(cls, subset):
+        with np.load(f'./data/mimiciii_{subset}.npz') as data:
+            z = data['z']
+            y = data['y']
+            delta = data['delta']
 
         z = (z - np.mean(z, axis=0)) / (np.std(z, axis=0) + 1e-15)
         return cls(y=y, z=z, delta=delta)
