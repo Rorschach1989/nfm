@@ -35,8 +35,8 @@ def integrate(x0, nb_steps, step_sizes, integrand, compute_grad=False, x_tot=Non
     #Clenshaw-Curtis Quadrature Method
     cc_weights, steps = compute_cc_weights(nb_steps)
 
-    device = x0.get_device() if x0.is_cuda else "cpu"
-    cc_weights, steps = cc_weights.to(device), steps.to(device)
+    # device = x0.get_device() if x0.is_cuda else "cpu"
+    cc_weights, steps = cc_weights.to(default_device), steps.to(default_device)
 
     xT = x0 + nb_steps*step_sizes
     if not compute_grad:
@@ -96,13 +96,21 @@ class ParallelNeuralIntegral(torch.autograd.Function):
         return -x0_grad*grad_output, x_grad*grad_output, None, integrand_grad, None
 
 
-class PositiveELU(nn.Module):
+class PositiveActivation(nn.Module):
 
-    def __init__(self):
-        super(PositiveELU, self).__init__()
+    def __init__(self, act_type='elu1p'):
+        super(PositiveActivation, self).__init__()
+        self.act_type = act_type
 
     def forward(self, x):
-        return F.elu(x) + 1
+        if self.act_type == 'elu1p':
+            return F.elu(x) + 1
+        elif self.act_type == 'exp':
+            return torch.exp(x)
+        elif self.act_type == 'softplus':
+            return F.softplus(x)
+        else:
+            raise NotImplementedError
 
 
 class UMNN(nn.Module):
@@ -112,7 +120,7 @@ class UMNN(nn.Module):
 
     def __init__(self, num_hidden_units, nb_steps=50, positive_transform='elu1p'):
         super(UMNN, self).__init__()
-        positive_layer = PositiveELU() if positive_transform == 'elu1p' else nn.Softplus()
+        positive_layer = PositiveActivation(positive_transform)
         self._derivative_mlp = nn.Sequential(
             nn.Linear(in_features=1, out_features=num_hidden_units),
             nn.ReLU(),

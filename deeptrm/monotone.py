@@ -4,7 +4,6 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 from typing import Union
-from .umnn import PositiveELU
 
 
 class MonotoneLinear(nn.Module):

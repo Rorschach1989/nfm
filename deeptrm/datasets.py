@@ -212,7 +212,7 @@ class SurvivalDataset(Dataset):
         return sort_y, sort_delta, sort_z
 
     def shuffle(self):
-        perm = torch.randperm(self.sample_size)
+        perm = torch.randperm(self.sample_size).to(default_device)
         self.y = self.y[perm]
         self.z = self.z[perm]
         self.delta = self.delta[perm]
@@ -223,7 +223,7 @@ class SurvivalDataset(Dataset):
         """
         samples_each = self.sample_size // n_folds
         indices = 0
-        mask_ = torch.zeros([self.sample_size], dtype=torch.bool)
+        mask_ = torch.zeros([self.sample_size], dtype=torch.bool, device=default_device)
         train_datasets, valid_datasets, test_datasets = [], [], []
         if shuffle:
             self.shuffle()
@@ -235,10 +235,11 @@ class SurvivalDataset(Dataset):
             mask[start: stop] = True
             test_z, test_y, test_delta = self[torch.where(mask)[0]]
             train_valid_z, train_valid_y, train_valid_delta = self[torch.where(~mask)[0]]
-            n_valid = train_valid_z.shape[0] // 5  # 20% for valid
-            valid_z, train_z = train_valid_z[:n_valid], train_valid_z[n_valid:]
-            valid_y, train_y = train_valid_y[:n_valid], train_valid_y[n_valid:]
-            valid_delta, train_delta = train_valid_delta[:n_valid], train_valid_delta[n_valid:]
+            n_train = train_valid_z.shape[0]
+            n_valid = n_train // 5  # 20% for valid
+            valid_z, train_z = torch.split(train_valid_z, [n_valid, n_train - n_valid])
+            valid_y, train_y = torch.split(train_valid_y, [n_valid, n_train - n_valid])
+            valid_delta, train_delta = torch.split(train_valid_delta, [n_valid, n_train - n_valid])
             train_datasets.append(self.__class__(y=train_y, z=train_z, delta=train_delta))
             valid_datasets.append(self.__class__(y=valid_y, z=valid_z, delta=valid_delta))
             test_datasets.append(self.__class__(y=test_y, z=test_z, delta=test_delta))

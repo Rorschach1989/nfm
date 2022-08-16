@@ -8,13 +8,15 @@ class SuMoLoss(nn.Module):
     `Survival Regression with Proper Scoring Rules and Monotonic Neural Networks`
     """
 
-    def __init__(self, in_features, num_hidden_units):  # two-layer architecture
+    def __init__(self, in_features, num_hidden_units, weight_transform='abs'):  # two-layer architecture
         super(SuMoLoss, self).__init__()
         self.num_hidden_units = num_hidden_units
         self.h_mixed = nn.Sequential(
-            MonotoneLinear(in_features=in_features + 1, out_features=num_hidden_units),
+            MonotoneLinear(in_features=in_features + 1,
+                           out_features=num_hidden_units,
+                           weight_transform=weight_transform),
             nn.Tanh(),
-            MonotoneLinear(num_hidden_units, 1)
+            MonotoneLinear(num_hidden_units, 1, weight_transform='abs')
         )
 
     def forward(self, m_z, y, delta):

@@ -36,7 +36,7 @@ xgb_params = {
     "eval_metric": "cox-nloglik",
     "tree_method": "exact",
     "max_depth": 3,
-    "booster": "dart",
+    "booster": "gbtree",
     "subsample": 1.0,
     "min_child_weight": 30,
     "colsample_bynode": 1.0,

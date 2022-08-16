@@ -32,9 +32,9 @@ class Net(nn.Module):
         super(Net, self).__init__()
         # self.te = TimeEncoder()
         self.mlp = nn.Sequential(
-            nn.Linear(in_features=1 + 13, out_features=64, bias=False),
+            nn.Linear(in_features=1 + 7, out_features=128),
             nn.ReLU(),
-            nn.Linear(in_features=64, out_features=1, bias=False)
+            nn.Linear(in_features=128, out_features=1)
         )
 
     def forward(self, y, z):
@@ -66,7 +66,7 @@ class NetV2(nn.Module):
         return torch.exp(self.out_forward(inputs))
 
 
-data_full = SurvivalDataset.metabric('./data/metabric_IHC4_clinical_train_test.h5')
+data_full = SurvivalDataset.gbsg('./data/gbsg_cancer_train_test.h5')
 # data_full.apply_scaler(standardize=False)
 fold_c_indices = []
 fold_ibs = []
@@ -79,7 +79,7 @@ def normalize(y):
     return (y + 1) / normalizing_factor
 
 
-for j in tqdm(range(10)):
+for j in tqdm(range(1)):
     torch.manual_seed(77+j)
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
     for i in range(5):
@@ -94,9 +94,9 @@ for j in tqdm(range(10)):
         #                   num_hidden_units=128,
         #                   positive_transform='elu1p')
         nll = FullyNeuralNLL(eps_conf=ParetoEps(learnable=True), encoder=Net())
-        optimizer = torch.optim.Adam(lr=1e-2, weight_decay=1e-3, params=nll.parameters())
-        loader = DataLoader(train_folds[i], batch_size=128)
-        for epoch in range(50):
+        optimizer = torch.optim.Adam(lr=1e-3, weight_decay=1e-3, params=nll.parameters())
+        loader = DataLoader(train_folds[i], batch_size=512)
+        for epoch in range(100):
             for z, y, delta in loader:
                 nll.train()
                 loss = nll(z=z, y=normalize(y), delta=delta)
