@@ -23,29 +23,32 @@ def normalize(t):
     return (t + 1) / normalizing_factor
 
 
-for j in tqdm(range(10)):
+n_hidden = 128
+
+
+for j in tqdm(range(1)):
     torch.manual_seed(77 + j)
 
     test_c_indices, test_ibs, test_nbll = [], [], []
     m = nn.Sequential(
-        nn.Linear(in_features=kkbox_train.z.shape[-1], out_features=128),
+        nn.Linear(in_features=kkbox_train.z.shape[-1], out_features=n_hidden),
         nn.Tanh(),
         # nn.Dropout(),
-        nn.Linear(in_features=128, out_features=128),
+        nn.Linear(in_features=n_hidden, out_features=n_hidden),
         # nn.Dropout()
     ).to(default_device)
     # nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True), num_hidden_units=256)
-    nll = SuMoLoss(in_features=128, num_hidden_units=128).to(default_device)
+    nll = SuMoLoss(in_features=n_hidden, num_hidden_units=n_hidden, weight_transform='square')
     optimizer = torch.optim.Adam(lr=1e-2, weight_decay=1e-2, params=list(m.parameters()) + list(nll.parameters()))
     loader = DataLoader(kkbox_train, batch_size=128)
 
-    num_epoch = 100
+    num_epoch = 1
     min_valid_loss = np.inf
     patience = 5
     trigger = 0
 
     for epoch in range(num_epoch):
-        for z, y, delta in loader:
+        for z, y, delta in tqdm(loader):
             m.train()
             m_z = m(z)
             y = y.clone().requires_grad_(True)

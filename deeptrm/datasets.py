@@ -1,3 +1,4 @@
+import os
 import torch
 import h5py
 import numpy as np
@@ -208,7 +209,8 @@ class SurvivalDataset(Dataset):
 
     @classmethod
     def mimiciii(cls, subset):
-        with np.load(f'./data/mimiciii_{subset}.npz') as data:
+        data_dir = os.path.join(os.path.abspath(os.path.curdir), 'data')
+        with np.load(f'{data_dir}/mimiciii_{subset}.npz') as data:
             z = data['z']
             y = data['y']
             delta = data['delta']
