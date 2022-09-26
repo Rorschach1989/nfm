@@ -17,13 +17,14 @@ fold_inbll = []
 
 np.random.seed(77)
 
-for _ in tqdm(range(10)):
+for j in tqdm(range(10)):
+    torch.manual_seed(77 + j)
     # Performance seems to be highly dependent on initialization, doing merely a 5-fold CV does NOT
     # seem to provide stable results, therefore repeat 10 times with distinct shuffle
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
     for i in range(5):
         def np_convert(y_, delta_, z_):
-            return y_.detach().numpy().reshape(-1, ), delta_.numpy().reshape(-1, ), z_.numpy()
+            return y_.cpu().detach().numpy().reshape(-1, ), delta_.cpu().numpy().reshape(-1, ), z_.cpu().numpy()
 
 
         y, delta, z = np_convert(*train_folds[i].sort())
@@ -66,12 +67,12 @@ for _ in tqdm(range(10)):
         fold_inbll.append(ev.integrated_nbll(time_grid))
 
 print(
-    np.around(np.asarray(fold_c_indices).mean(), 3),
-    np.around(np.asarray(fold_ibs).mean(), 3),
-    np.around(np.asarray(fold_inbll).mean(), 3)
+    np.around(np.asarray(fold_c_indices).mean(), 4),
+    np.around(np.asarray(fold_ibs).mean(), 4),
+    np.around(np.asarray(fold_inbll).mean(), 4)
 )
 print(
-    np.around(np.asarray(fold_c_indices).std(), 3),
-    np.around(np.asarray(fold_ibs).std(), 3),
-    np.around(np.asarray(fold_inbll).std(), 3)
+    np.around(np.asarray(fold_c_indices).std(), 4),
+    np.around(np.asarray(fold_ibs).std(), 4),
+    np.around(np.asarray(fold_inbll).std(), 4)
 )

@@ -23,7 +23,7 @@ fold_inbll = []
 
 np.random.seed(77)
 
-for j in tqdm(range(10)):
+for j in tqdm(range(5)):
     torch.manual_seed(77 + j)
     # Performance seems to be highly dependent on initialization, doing merely a 5-fold CV does NOT
     # seem to provide stable results, therefore repeat 10 times with distinct shuffle
@@ -60,19 +60,23 @@ for j in tqdm(range(10)):
 
     ev = EvalSurv(surv, y_test, delta_test, censor_surv='km')
     time_grid = np.linspace(y_test.min(), y_test.max(), 100)
-    ev.concordance_td(), ev.integrated_brier_score(time_grid), ev.integrated_nbll(time_grid)
+    # ev.concordance_td('antolini'), ev.integrated_brier_score(time_grid), ev.integrated_nbll(time_grid)
 
-    fold_c_indices.append(ev.concordance_td())
+    fold_c_indices.append(ev.concordance_td('antolini'))
     fold_ibs.append(ev.integrated_brier_score(time_grid))
     fold_inbll.append(ev.integrated_nbll(time_grid))
 
 print(
-    np.around(np.asarray(fold_c_indices).mean(), 3),
-    np.around(np.asarray(fold_ibs).mean(), 3),
-    np.around(np.asarray(fold_inbll).mean(), 3)
+    np.around(np.asarray(fold_c_indices).mean(), 4),
+    np.around(np.asarray(fold_ibs).mean(), 4),
+    np.around(np.asarray(fold_inbll).mean(), 4)
 )
 print(
-    np.around(np.asarray(fold_c_indices).std(), 3),
-    np.around(np.asarray(fold_ibs).std(), 3),
-    np.around(np.asarray(fold_inbll).std(), 3)
+    np.around(np.asarray(fold_c_indices).std(), 4),
+    np.around(np.asarray(fold_ibs).std(), 4),
+    np.around(np.asarray(fold_inbll).std(), 4)
 )
+
+# [0.8386081136327392, 0.838711877250543, 0.8390307697528466, 0.8404354670931167, 0.8385520037596135]
+# [0.11241340526206701, 0.11392272893327998, 0.11312548134691525, 0.11256387487241562, 0.11329878602278358]
+# [0.3510578281305717, 0.3552122717216418, 0.35211198184494025, 0.3519252085824575, 0.35376948448796913]
