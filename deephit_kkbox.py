@@ -23,7 +23,7 @@ fold_inbll = []
 
 np.random.seed(77)
 
-for j in tqdm(range(10)):
+for j in tqdm(range(5)):
     torch.manual_seed(77 + j)
     # Performance seems to be highly dependent on initialization, doing merely a 5-fold CV does NOT
     # seem to provide stable results, therefore repeat 10 times with distinct shuffle
@@ -31,7 +31,7 @@ for j in tqdm(range(10)):
     y_valid, delta_valid, z_valid = np_convert(*kkbox_valid.sort())
     y_test, delta_test, z_test = np_convert(*kkbox_test.sort())
 
-    num_durations = 20
+    num_durations = 50
     labtrans = DeepHitSingle.label_transform(num_durations)
     y, delta = labtrans.fit_transform(y, delta)
     y_valid, delta_valid = labtrans.transform(y_valid, delta_valid)
@@ -62,19 +62,23 @@ for j in tqdm(range(10)):
 
     ev = EvalSurv(surv, y_test, delta_test, censor_surv='km')
     time_grid = np.linspace(y_test.min(), y_test.max(), 100)
-    ev.concordance_td('antolini'), ev.integrated_brier_score(time_grid), ev.integrated_nbll(time_grid)
+    # ev.concordance_td('antolini'), ev.integrated_brier_score(time_grid), ev.integrated_nbll(time_grid)
 
     fold_c_indices.append(ev.concordance_td('antolini'))
     fold_ibs.append(ev.integrated_brier_score(time_grid))
     fold_inbll.append(ev.integrated_nbll(time_grid))
 
 print(
-    np.around(np.asarray(fold_c_indices).mean(), 3),
-    np.around(np.asarray(fold_ibs).mean(), 3),
-    np.around(np.asarray(fold_inbll).mean(), 3)
+    np.around(np.asarray(fold_c_indices).mean(), 4),
+    np.around(np.asarray(fold_ibs).mean(), 4),
+    np.around(np.asarray(fold_inbll).mean(), 4)
 )
 print(
-    np.around(np.asarray(fold_c_indices).std(), 3),
-    np.around(np.asarray(fold_ibs).std(), 3),
-    np.around(np.asarray(fold_inbll).std(), 3)
+    np.around(np.asarray(fold_c_indices).std(), 4),
+    np.around(np.asarray(fold_ibs).std(), 4),
+    np.around(np.asarray(fold_inbll).std(), 4)
 )
+
+# [0.8619183619098617, 0.8593375451739902, 0.8572492945040547, 0.8637943977073406, 0.8637392890779901]  # antolini
+# [0.15764397934999053, 0.16283871169696082, 0.1645191773341935, 0.15513677359052055, 0.1598984929660642]
+# [0.4794548919778442, 0.49488401707053586, 0.4999412679898003, 0.4710203435144636, 0.48684417138156877]
