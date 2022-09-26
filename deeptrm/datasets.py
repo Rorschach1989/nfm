@@ -238,11 +238,13 @@ class SurvivalDataset(Dataset):
         if standardize:
             self.y = F.normalize(self.y, dim=0).detach().requires_grad_(False)
 
-    def sort(self):
+    def sort(self, persist=False):
         order = torch.argsort(self.y, dim=0)[:, 0]
         sort_y = self.y[order]
         sort_delta = self.delta[order]
         sort_z = self.z[order]
+        if persist:
+            self.y, self.delta, self.z = sort_y, sort_delta, sort_z
         return sort_y, sort_delta, sort_z
 
     def shuffle(self):

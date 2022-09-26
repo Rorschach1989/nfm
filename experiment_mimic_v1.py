@@ -14,7 +14,7 @@ from pycox.evaluation.eval_surv import EvalSurv
 torch.manual_seed(7777777)
 
 
-normalizing_factor = 1e8
+normalizing_factor = 1e7
 
 
 def normalize(y):
@@ -33,15 +33,15 @@ y_test = normalize(y_test)
 rep_c_index, rep_ibs, rep_ibnll = [], [], []
 
 
-for replicate in range(1):  # 10 for calculate std/mean
+for replicate in range(10):  # 10 for calculate std/mean
     m = nn.Sequential(
-        nn.Linear(in_features=26, out_features=256, bias=False),
+        nn.Linear(in_features=26, out_features=128, bias=False),
         nn.ReLU(),
-        nn.Linear(in_features=256, out_features=1, bias=False)
+        nn.Linear(in_features=128, out_features=1, bias=False)
     ).to(default_device)
     valid_losses = []
     test_c_indices, test_ibs, test_nbll = [], [], []
-    nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True), num_hidden_units=256)
+    nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True), num_hidden_units=512)
     optimizer = torch.optim.Adam(lr=1e-2, params=list(m.parameters()) + list(nll.parameters()))
     loader = DataLoader(mimic_train, batch_size=256)
     for epoch in tqdm(range(50)):

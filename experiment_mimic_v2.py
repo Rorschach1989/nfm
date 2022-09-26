@@ -31,21 +31,21 @@ class Net(nn.Module):
 
     def __init__(self):
         super(Net, self).__init__()
-        self.te = TimeEncoder(d_time=64)
+        # self.te = TimeEncoder(d_time=32)
         self.mlp = nn.Sequential(
-            nn.Linear(in_features=128 + 26, out_features=256),
-            # nn.Linear(in_features=1 + 26, out_features=128),
+            # nn.Linear(in_features=64 + 26, out_features=128),
+            nn.Linear(in_features=1 + 26, out_features=128),
             nn.ReLU(),
-            nn.Linear(in_features=256, out_features=1)
+            nn.Linear(in_features=128, out_features=1)
         )
 
     def forward(self, y, z):
-        inputs = torch.cat([z, self.te(y)], dim=1)
-        # inputs = torch.cat([z, y], dim=1)
+        # inputs = torch.cat([z, self.te(y)], dim=1)
+        inputs = torch.cat([z, y], dim=1)
         return torch.exp(self.mlp(inputs))
 
 
-normalizing_factor = 1e8
+normalizing_factor = 1e7
 
 
 def normalize(y):
@@ -56,7 +56,7 @@ mimic_train = SurvivalDataset.mimiciii('train')
 mimic_valid = SurvivalDataset.mimiciii('valid')
 mimic_test = SurvivalDataset.mimiciii('test')
 y_valid, delta_valid, z_valid = mimic_valid.sort()
-y_test, delta_test, z_test = mimic_test.sort()
+y_test, delta_test, z_test = mimic_test.sort(persist=True)
 y_valid = normalize(y_valid)
 y_test = normalize(y_test)
 
@@ -64,7 +64,7 @@ y_test = normalize(y_test)
 rep_c_index, rep_ibs, rep_ibnll = [], [], []
 
 
-for replicate in range(1):  # 10 for calculate std/mean
+for replicate in range(10):  # 10 for calculate std/mean
     valid_losses = []
     # m = nn.Sequential(
     #     nn.Linear(in_features=25, out_features=32, bias=False),
@@ -78,6 +78,7 @@ for replicate in range(1):  # 10 for calculate std/mean
     optimizer = torch.optim.Adam(lr=1e-2, weight_decay=1e-3, params=nll.parameters())
     test_c_indices, test_ibs, test_nbll = [], [], []
     loader = DataLoader(mimic_train, batch_size=256)
+    test_loader = DataLoader(mimic_test, batch_size=1024)
     for epoch in tqdm(range(50)):
         for z, y, delta in loader:
             nll.train()
@@ -92,8 +93,14 @@ for replicate in range(1):  # 10 for calculate std/mean
             valid_loss = nll(z_valid, y_valid, delta_valid)
             valid_losses.append(valid_loss)
             tg_test = np.linspace(y_test.cpu().numpy().min(), y_test.cpu().numpy().max(), 100)
-            surv_pred_test = nll.get_survival_prediction(
-                z_test=z_test, y_test=torch.tensor(tg_test, dtype=torch.float).view(-1, 1))
+            # surv_pred_test = nll.get_survival_prediction(
+            #     z_test=z_test, y_test=torch.tensor(tg_test, dtype=torch.float).view(-1, 1))
+            surv_pred_test = []
+            for z_t, _, _ in test_loader:
+                elem = nll.get_survival_prediction(
+                    z_test=z_t, y_test=torch.tensor(tg_test, dtype=torch.float).view(-1, 1))
+                surv_pred_test.append(elem)
+            surv_pred_test = torch.cat(surv_pred_test, dim=1)
             test_evaluator = EvalSurv(
                 surv=pd.DataFrame(surv_pred_test.cpu().numpy(), index=tg_test.reshape(-1)),
                 durations=y_test.cpu().numpy().reshape(-1),

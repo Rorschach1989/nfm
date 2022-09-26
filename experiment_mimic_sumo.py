@@ -15,7 +15,7 @@ from pycox.evaluation.eval_surv import EvalSurv
 torch.manual_seed(7777777)
 
 
-normalizing_factor = 1e8
+normalizing_factor = 1e7
 
 
 def normalize(y):
