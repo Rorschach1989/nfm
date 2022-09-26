@@ -9,11 +9,11 @@ from deeptrm.datasets import SurvivalDataset
 
 torch.manual_seed(77)
 early_stopping_patience = 50
-data_full = SurvivalDataset.colon('./data/colon.csv')
+# data_full = SurvivalDataset.colon('./data/colon.csv')
 # data_full = SurvivalDataset.flchain('./data/flchain.csv')
 # data_full = SurvivalDataset.gbsg('./data/gbsg_cancer_train_test.h5')
 # data_full = SurvivalDataset.metabric('./data/metabric_IHC4_clinical_train_test.h5')
-# data_full = SurvivalDataset.support('./data/support_train_test.h5')
+data_full = SurvivalDataset.support('./data/support_train_test.h5')
 # data_full = SurvivalDataset.whas('./data/whasncc.dat')
 fold_c_indices = []
 fold_ibs = []
@@ -21,20 +21,21 @@ fold_inbll = []
 
 np.random.seed(77)
 
-for _ in tqdm(range(10)):
+for j in tqdm(range(10)):
+    torch.manual_seed(77+j)
     # Performance seems to be highly dependent on initialization, doing merely a 5-fold CV does NOT
     # seem to provide stable results, therefore repeat 10 times with distinct shuffle
     train_folds, valid_folds, test_folds = data_full.cv_split(shuffle=True)
-    for i in range(5):
+    for i in range(0, 5):
         def np_convert(y_, delta_, z_):
-            return y_.detach().numpy().reshape(-1, ), delta_.numpy().reshape(-1, ), z_.numpy()
+            return y_.cpu().detach().numpy().reshape(-1, ), delta_.cpu().numpy().reshape(-1, ), z_.cpu().numpy()
 
 
         y, delta, z = np_convert(*train_folds[i].sort())
         y_valid, delta_valid, z_valid = np_convert(*valid_folds[i].sort())
         y_test, delta_test, z_test = np_convert(*test_folds[i].sort())
 
-        num_durations = 10
+        num_durations = 70
         labtrans = DeepHitSingle.label_transform(num_durations)
         y, delta = labtrans.fit_transform(y, delta)
         y_valid, delta_valid = labtrans.transform(y_valid, delta_valid)
@@ -72,12 +73,12 @@ for _ in tqdm(range(10)):
         fold_inbll.append(ev.integrated_nbll(time_grid))
 
 print(
-    np.around(np.asarray(fold_c_indices).mean(), 3),
-    np.around(np.asarray(fold_ibs).mean(), 3),
-    np.around(np.asarray(fold_inbll).mean(), 3)
+    np.around(np.asarray(fold_c_indices).mean(), 4),
+    np.around(np.asarray(fold_ibs).mean(), 4),
+    np.around(np.asarray(fold_inbll).mean(), 4)
 )
 print(
-    np.around(np.asarray(fold_c_indices).std(), 3),
-    np.around(np.asarray(fold_ibs).std(), 3),
-    np.around(np.asarray(fold_inbll).std(), 3)
+    np.around(np.asarray(fold_c_indices).std(), 4),
+    np.around(np.asarray(fold_ibs).std(), 4),
+    np.around(np.asarray(fold_inbll).std(), 4)
 )

@@ -13,9 +13,8 @@ early_stopping_patience = 50
 # data_full = SurvivalDataset.flchain('./data/flchain.csv')
 # data_full = SurvivalDataset.gbsg('./data/gbsg_cancer_train_test.h5')
 # data_full = SurvivalDataset.metabric('./data/metabric_IHC4_clinical_train_test.h5')
-# data_full = SurvivalDataset.support('./data/support_train_test.h5')
+data_full = SurvivalDataset.support('./data/support_train_test.h5')
 # data_full = SurvivalDataset.whas('./data/whasncc.dat')
-data_full = SurvivalDataset.mimiciii('./data/mimiciii_features.csv', './data/mimiciii_labels.csv')
 fold_c_indices = []
 fold_ibs = []
 fold_inbll = []
@@ -72,12 +71,12 @@ for j in tqdm(range(10)):
         fold_inbll.append(ev.integrated_nbll(time_grid))
 
 print(
-    np.around(np.asarray(fold_c_indices).mean(), 3),
-    np.around(np.asarray(fold_ibs).mean(), 3),
-    np.around(np.asarray(fold_inbll).mean(), 3)
+    np.around(np.asarray(fold_c_indices).mean(), 4),
+    np.around(np.asarray(fold_ibs).mean(), 4),
+    np.around(np.asarray(fold_inbll).mean(), 4)
 )
 print(
-    np.around(np.asarray(fold_c_indices).std(), 3),
-    np.around(np.asarray(fold_ibs).std(), 3),
-    np.around(np.asarray(fold_inbll).std(), 3)
+    np.around(np.asarray(fold_c_indices).std(), 4),
+    np.around(np.asarray(fold_ibs).std(), 4),
+    np.around(np.asarray(fold_inbll).std(), 4)
 )
