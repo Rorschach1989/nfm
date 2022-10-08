@@ -6,8 +6,8 @@ from pycox.evaluation.eval_surv import EvalSurv
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from deeptrm.datasets import SurvivalDataset
-from deeptrm.utils import default_device
+from nfm.datasets import SurvivalDataset
+from nfm.utils import default_device
 from sumo.loss import SuMoLoss
 
 kkbox_train = SurvivalDataset.kkbox('train')

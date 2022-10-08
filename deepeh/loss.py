@@ -1,7 +1,7 @@
 import math
 import torch
 import torch.nn as nn
-from deeptrm.umnn import integrate
+from nfm.umnn import integrate
 
 
 class DehLoss(nn.Module):

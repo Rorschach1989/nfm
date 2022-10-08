@@ -232,6 +232,10 @@ class SurvivalDataset(Dataset):
     def __len__(self):
         return self.z.shape[0]
 
+    @property
+    def num_features(self):
+        return self.z.shape[1]
+
     def apply_scaler(self, log_durations=True, standardize=True):
         if log_durations:
             self.y = torch.log1p(self.y)

@@ -3,10 +3,10 @@ import torch.nn as nn
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from deeptrm.datasets import SurvivalDataset
-from deeptrm.base import TransNLL, MonotoneNLL
-from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps
-from deeptrm.metric import c_index
+from nfm.datasets import SurvivalDataset
+from nfm.base import TransNLL, MonotoneNLL
+from nfm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps
+from nfm.metric import c_index
 from pycox.evaluation.eval_surv import EvalSurv
 
 # torch.manual_seed(77)

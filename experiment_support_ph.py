@@ -2,8 +2,8 @@ import torch
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
-from deeptrm.datasets import SurvivalDataset
-from deeptrm.metric import c_index
+from nfm.datasets import SurvivalDataset
+from nfm.metric import c_index
 from pycox.evaluation.eval_surv import EvalSurv
 from sksurv.ensemble import RandomSurvivalForest
 from sksurv.linear_model import CoxPHSurvivalAnalysis

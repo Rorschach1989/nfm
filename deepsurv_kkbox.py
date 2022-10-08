@@ -5,7 +5,7 @@ from pycox.evaluation.eval_surv import EvalSurv
 from pycox.models import CoxPH
 from tqdm import tqdm
 
-from deeptrm.datasets import SurvivalDataset
+from nfm.datasets import SurvivalDataset
 
 
 def np_convert(y_, delta_, z_):

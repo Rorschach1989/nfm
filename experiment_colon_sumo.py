@@ -4,11 +4,11 @@ import pandas as pd
 import torch.nn as nn
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from deeptrm.datasets import SurvivalDataset
-from deeptrm.base import TransNLL, MonotoneNLL
+from nfm.datasets import SurvivalDataset
+from nfm.base import TransNLL, MonotoneNLL
 from sumo.loss import SuMoLoss
-from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps, BoxCoxEps, PositiveStableEps
-from deeptrm.metric import c_index
+from nfm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps, BoxCoxEps, PositiveStableEps
+from nfm.metric import c_index
 from pycox.evaluation.eval_surv import EvalSurv
 
 

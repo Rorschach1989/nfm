@@ -6,7 +6,7 @@ from pycox.models import CoxTime
 from pycox.models.cox_time import MLPVanillaCoxTime
 from tqdm import tqdm
 
-from deeptrm.datasets import SurvivalDataset
+from nfm.datasets import SurvivalDataset
 
 
 def np_convert(y_, delta_, z_):

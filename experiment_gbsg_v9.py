@@ -5,11 +5,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from deeptrm.datasets import SurvivalDataset
-from deeptrm.base import TransNLL, MonotoneNLL, FullyNeuralNLL
-from deeptrm.monotone import SkipWrapper
-from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps, BoxCoxEps, PositiveStableEps, IGGEps
-from deeptrm.metric import c_index
+from nfm.datasets import SurvivalDataset
+from nfm.base import TransNLL, MonotoneNLL, FullyNeuralNLL
+from nfm.monotone import SkipWrapper
+from nfm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps, BoxCoxEps, PositiveStableEps, IGGEps
+from nfm.metric import c_index
 from pycox.evaluation.eval_surv import EvalSurv
 
 

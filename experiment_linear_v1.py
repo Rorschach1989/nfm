@@ -1,9 +1,9 @@
 import torch
 import numpy as np
 import torch.nn as nn
-from deeptrm.base import TransNLL
-from deeptrm.eps_config import GaussianEps, CoxEps
-from deeptrm.synthesis import SyntheticData
+from nfm.base import TransNLL
+from nfm.eps_config import GaussianEps, CoxEps
+from nfm.synthesis import SyntheticData
 
 # torch.manual_seed(77)
 

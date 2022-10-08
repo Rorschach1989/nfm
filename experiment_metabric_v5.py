@@ -5,16 +5,15 @@ import torch.nn as nn
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torch.nn import init
-from deeptrm.datasets import SurvivalDataset
-from deeptrm.base import TransNLL, MonotoneNLL
-from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, GaussianMixtureEps, BoxCoxEps, IGGEps
-from deeptrm.metric import c_index
-from deeptrm.utils import default_device
+from nfm.datasets import SurvivalDataset
+from nfm.base import TransNLL, MonotoneNLL
+from nfm.eps_config import GaussianEps, CoxEps, ParetoEps, GaussianMixtureEps, BoxCoxEps, IGGEps
+from nfm.metric import c_index
+from nfm.utils import default_device
 from pycox.evaluation.eval_surv import EvalSurv
 
 
 data_full = SurvivalDataset.metabric('./data/metabric_IHC4_clinical_train_test.h5')
-# data_full.apply_scaler(standardize=False)
 fold_c_indices = []
 fold_ibs = []
 fold_nbll = []
@@ -50,8 +49,6 @@ for i in tqdm(range(10)):
                 m.train()
                 m_z = m(z)
                 loss = nll(m_z=m_z, y=normalize(y), delta=delta)
-                # loss += 1e-3 * sum(p.pow(2.0).sum() for p in m.parameters())
-                # loss += 1e-3 * sum(p.pow(2.0).sum() for p in nll.parameters())
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -72,8 +69,6 @@ for i in tqdm(range(10)):
                     durations=y_test.cpu().numpy().reshape(-1),
                     events=delta_test.cpu().numpy().reshape(-1),
                     censor_surv='km')
-                # valid_c_indices.append(valid_evaluator.concordance_td(method='antolini'))
-                # test_c_indices.append(test_evaluator.concordance_td(method='antolini'))
                 test_c_indices.append(c_index(-pred_test, y_test, delta_test))
                 test_ibs.append(test_evaluator.integrated_brier_score(time_grid=tg_test))
                 test_nbll.append(test_evaluator.integrated_nbll(time_grid=tg_test))

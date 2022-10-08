@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
-from deeptrm.base import TransNLL, MonotoneNLL
-from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps
-from deeptrm.synthesis import SyntheticData
+from nfm.base import TransNLL, MonotoneNLL
+from nfm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps
+from nfm.synthesis import SyntheticData
 
 torch.manual_seed(77)
 

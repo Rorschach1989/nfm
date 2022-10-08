@@ -5,11 +5,11 @@ import torch.nn as nn
 from tqdm import tqdm
 from torch.utils.data import DataLoader
 from torch.nn import init
-from deeptrm.datasets import SurvivalDataset
-from deeptrm.base import TransNLL, MonotoneNLL, CSNLL
-from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, GaussianMixtureEps, BoxCoxEps, IGGEps
-from deeptrm.metric import c_index
-from deeptrm.utils import default_device
+from nfm.datasets import SurvivalDataset
+from nfm.base import TransNLL, MonotoneNLL, CSNLL
+from nfm.eps_config import GaussianEps, CoxEps, ParetoEps, GaussianMixtureEps, BoxCoxEps, IGGEps
+from nfm.metric import c_index
+from nfm.utils import default_device
 from pycox.evaluation.eval_surv import EvalSurv
 
 

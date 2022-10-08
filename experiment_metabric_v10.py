@@ -5,25 +5,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from deeptrm.datasets import SurvivalDataset
-from deeptrm.base import TransNLL, MonotoneNLL, FullyNeuralNLL
-from deeptrm.monotone import SkipWrapper
-from deeptrm.eps_config import GaussianEps, CoxEps, ParetoEps, NonparametricEps, BoxCoxEps, PositiveStableEps, IGGEps
-from deeptrm.metric import c_index
+from nfm.datasets import SurvivalDataset
+from nfm.base import FullyNeuralNLL
+from nfm.eps_config import GaussianEps, CoxEps, ParetoEps, BoxCoxEps, PositiveStableEps, IGGEps
 from pycox.evaluation.eval_surv import EvalSurv
-
-
-class TimeEncoder(nn.Module):
-
-    def __init__(self, d_time=32):
-        super(TimeEncoder, self).__init__()
-        self.d_time = torch.tensor(d_time, dtype=torch.float, requires_grad=False)
-        self.basis_freq = nn.Parameter(1 / torch.pow(10, torch.linspace(0, 1.5, d_time)))
-
-    def forward(self, t):  # t is rank-1
-        map_ts = t.view(-1, 1) * self.basis_freq.view(1, -1)
-        harmonic = torch.cat([torch.cos(map_ts), torch.sin(map_ts)], dim=1)
-        return harmonic / torch.sqrt(self.d_time)
 
 
 class Net(nn.Module):
@@ -32,7 +17,7 @@ class Net(nn.Module):
         super(Net, self).__init__()
         # self.te = TimeEncoder()
         self.mlp = nn.Sequential(
-            nn.Linear(in_features=1 + 13, out_features=64, bias=False),
+            nn.Linear(in_features=1 + data_full.num_features, out_features=64, bias=False),
             nn.ReLU(),
             nn.Linear(in_features=64, out_features=1, bias=False)
         )
@@ -40,30 +25,6 @@ class Net(nn.Module):
     def forward(self, y, z):
         inputs = torch.cat([z, y], dim=1)
         return torch.exp(self.mlp(inputs))
-
-
-class NetV2(nn.Module):
-    """Test MHA using time as query"""
-
-    def __init__(self):
-        super(NetV2, self).__init__()
-        self.te = TimeEncoder()
-        self.mha = nn.MultiheadAttention(embed_dim=64, kdim=1, vdim=1, num_heads=1, batch_first=True)
-        self.z_forward = nn.Linear(in_features=13, out_features=32)
-        self.out_forward = nn.Sequential(
-            nn.Linear(in_features=64 + 64 + 32, out_features=256),
-            nn.ReLU(),
-            nn.Linear(in_features=256, out_features=1)
-        )
-
-    def forward(self, y, z):
-        te = self.te(y)
-        z_f = self.z_forward(z)
-        q = torch.unsqueeze(te, dim=1)
-        k = v = torch.unsqueeze(z_f, dim=-1)
-        attn, _ = self.mha(q, k, v)
-        inputs = torch.cat([te, z_f, attn.squeeze(1)], dim=1)
-        return torch.exp(self.out_forward(inputs))
 
 
 data_full = SurvivalDataset.metabric('./data/metabric_IHC4_clinical_train_test.h5')
@@ -85,14 +46,6 @@ for j in tqdm(range(10)):
     for i in range(5):
         test_c_indices, test_ibs, test_nbll = [], [], []
         valid_losses = []
-        # m = nn.Sequential(
-        #     nn.Linear(in_features=25, out_features=32, bias=False),
-        #     nn.ReLU(),
-        #     nn.Linear(in_features=32, out_features=1, bias=False)
-        # )
-        # nll = MonotoneNLL(eps_conf=ParetoEps(learnable=True),
-        #                   num_hidden_units=128,
-        #                   positive_transform='elu1p')
         nll = FullyNeuralNLL(eps_conf=ParetoEps(learnable=True), encoder=Net())
         optimizer = torch.optim.Adam(lr=1e-2, weight_decay=1e-3, params=nll.parameters())
         loader = DataLoader(train_folds[i], batch_size=128)

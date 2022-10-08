@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from deeptrm.monotone import MonotoneLinear
+from nfm.monotone import MonotoneLinear
 
 
 class SuMoLoss(nn.Module):
