@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from .monotone import MonotoneMLP
 from .umnn import UMNN
 from .umnn_v2 import ParallelNeuralIntegral, _flatten
 from .utils import default_device

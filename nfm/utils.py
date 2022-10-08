@@ -1,7 +1,7 @@
 import torch
 
 
-_ALLOW_MPS = False  # MPS support is currently not stable enough
+_ALLOW_MPS = False
 
 
 def get_default_device():
