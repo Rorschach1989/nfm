@@ -1,3 +1,4 @@
 torch>=1.10.0
 pycox==0.2.3
 tqdm
+matplotlib
