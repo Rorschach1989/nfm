@@ -14,4 +14,5 @@ python experiment_metabric_fn.py
 For evaluations on other datasets, check the usage of ``nfm.datasets.SurvivalDataset``. Specifically, replace ``SurvivalDataset.metabric`` with other dataset configurations, and the rest of the codes
 require almost no change.  
 
+For reproduction of synthetic experiments, check ``experiment_synthesis.py``
 Note that the preprocessing routine in the paper is slightly different from the standard routine in ``pycox`` package
